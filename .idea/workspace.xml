@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="46a44c24-c7b4-48c6-b52a-ef653ffe0f41" name="Default" comment="" />
+    <list default="true" id="46a44c24-c7b4-48c6-b52a-ef653ffe0f41" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -14,7 +16,7 @@
       <file leaf-file-name="detect_serial.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/detect_serial.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2749">
+            <state relative-caret-position="-2479">
               <caret line="34" column="21" selection-start-line="34" selection-start-column="21" selection-end-line="34" selection-end-column="21" />
               <folding>
                 <element signature="e#0#15#0" expanded="true" />
@@ -52,7 +54,7 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="950" />
     <option name="width" value="980" />
     <option name="height" value="1040" />
@@ -225,7 +227,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-7" y="-7" width="1550" height="838" extended-state="7" />
+    <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.15455747" />
@@ -314,7 +316,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2749">
+        <state relative-caret-position="-2479">
           <caret line="34" column="21" selection-start-line="34" selection-start-column="21" selection-end-line="34" selection-end-column="21" />
           <folding>
             <element signature="e#0#15#0" expanded="true" />
