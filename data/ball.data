@@ -1,0 +1,6 @@
+classes=2
+train=../self_data/train.txt
+valid=../self_data/val.txt
+names=data/ball.names
+backup=backup/
+eval=coco
