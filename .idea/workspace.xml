@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="46a44c24-c7b4-48c6-b52a-ef653ffe0f41" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/detect_serial.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect_serial.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -16,11 +16,12 @@
       <file leaf-file-name="detect_serial.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/detect_serial.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-2479">
-              <caret line="34" column="21" selection-start-line="34" selection-start-column="21" selection-end-line="34" selection-end-column="21" />
+            <state relative-caret-position="534">
+              <caret line="109" column="25" selection-start-line="109" selection-start-column="25" selection-end-line="109" selection-end-column="25" />
               <folding>
-                <element signature="e#0#15#0" expanded="true" />
+                <element signature="e#1#12#0" expanded="true" />
                 <element signature="e#586#2050#0" />
+                <element signature="e#2385#5500#0" />
               </folding>
             </state>
           </provider>
@@ -254,7 +255,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="3" />
+      <option name="time" value="4" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
@@ -268,8 +269,9 @@
         <state relative-caret-position="1890">
           <caret line="63" column="19" lean-forward="true" selection-start-line="63" selection-start-column="19" selection-end-line="63" selection-end-column="19" />
           <folding>
-            <element signature="e#0#15#0" expanded="true" />
+            <element signature="e#1#12#0" expanded="true" />
             <element signature="e#586#2050#0" />
+            <element signature="e#2385#5500#0" />
           </folding>
         </state>
       </provider>
@@ -287,8 +289,9 @@
         <state relative-caret-position="750">
           <caret line="32" column="17" selection-start-line="32" selection-start-column="17" selection-end-line="32" selection-end-column="17" />
           <folding>
-            <element signature="e#0#15#0" expanded="true" />
+            <element signature="e#1#12#0" expanded="true" />
             <element signature="e#586#2050#0" />
+            <element signature="e#2385#5500#0" />
           </folding>
         </state>
       </provider>
@@ -316,11 +319,12 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2479">
-          <caret line="34" column="21" selection-start-line="34" selection-start-column="21" selection-end-line="34" selection-end-column="21" />
+        <state relative-caret-position="534">
+          <caret line="109" column="25" selection-start-line="109" selection-start-column="25" selection-end-line="109" selection-end-column="25" />
           <folding>
-            <element signature="e#0#15#0" expanded="true" />
+            <element signature="e#1#12#0" expanded="true" />
             <element signature="e#586#2050#0" />
+            <element signature="e#2385#5500#0" />
           </folding>
         </state>
       </provider>

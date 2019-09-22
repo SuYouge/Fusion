@@ -1,6 +1,4 @@
-import argparse
 import time
-from sys import platform
 import serial
 import struct
 import threading
@@ -8,10 +6,7 @@ from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
 
-
-# fd = serial.Serial("COM14",9600,timeout=100)
-
-img_size =416
+img_size = 416
 out = 'output'
 weights = 'weights/tiny-thresh06.pt'
 # half = True
@@ -26,16 +21,16 @@ global_speedx = 0
 global_speedy = 0
 global_speedr = 0
 
-mode = ['wander', 'follow', 'attack', 'rehearsal']
+mode = ['init','init']
+# mode_list = ['init','wander', 'follow', 'find', 'attack', 'rehearsal']
 
 '''
 wander : avoid barrel and looking for target
 follow : focus on target and keep distance
+find   : find target
 attack : approach to target 
 rehearsal : undefined
 '''
-
-
 
 serialPort = "COM14"  # 串口
 baudRate = 9600  # 波特率
@@ -89,15 +84,65 @@ class SerialPort:
             # print(self.message)
 
 
-def decision(list=None):
+# make decision
+def decision(list = None):
+    print(list,global_dist)
+    # calculate decision FSM value
+    global mode
+    #  FSM
+    if (mode[0] == 'init'):
+        if ():
+            mode[1] = 'wander'
+            execute()
+        elif ():
+            mode[1] = 'follow'
+            execute()
+        elif ():
+            mode[1] = 'find'
+            execute()
+        elif ():
+            mode[1] = 'attack'
+            execute()
+        elif ():
+            mode[1] = 'rehearsal'
+            execute()
+    else:
+        mode[1] = mode[0]
+        execute()
+
+def execute():
+    # define a decision filter(list[]) for every detection
+    global mode
     global global_dist
     global global_speedx
     global global_speedy
     global global_speedr
-    global_speedx = 700
-    global_speedy = 0
-    global_speedr = 0
-    print(list,global_dist)
+    if (mode[1] == 'init'):
+        global_speedx = 0
+        global_speedy = 0
+        global_speedr = 0
+    elif(mode[1] == 'wander'):
+        global_speedx = 700
+        global_speedy = 0
+        global_speedr = 0
+    elif (mode[1] == 'follow'):
+        global_speedx = 700
+        global_speedy = 0
+        global_speedr = 0
+    elif (mode[1] == 'find'):
+        global_speedx = 700
+        global_speedy = 0
+        global_speedr = 0
+    elif (mode[1] == 'attack'):
+        global_speedx = 700
+        global_speedy = 0
+        global_speedr = 0
+    elif (mode[1] == 'rehearsal'):
+        global_speedx = 0
+        global_speedy = 0
+        global_speedr = 0
+    print('executed state is %s, previous state is %s'%(mode[1],mode[0]))
+    mode[0] = mode[1]
 
 
 def detect(save_img=False, stream_img=False):
