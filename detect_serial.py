@@ -2,6 +2,7 @@ import time
 import serial
 import struct
 import threading
+
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
@@ -34,6 +35,17 @@ rehearsal : undefined
 
 serialPort = "COM14"  # 串口
 baudRate = 9600  # 波特率
+
+
+# limited speed
+def suppress(speed):
+    if (speed>1000):
+        speed = 1000
+    elif(speed<-1000):
+        speed = -1000
+    # x = speed
+    # speed = 1 / (1 + np.exp(-x))
+    return speed
 
 
 class SerialPort:
@@ -93,24 +105,39 @@ def decision(list = None):
     if (mode[0] == 'init'):
         if ():
             mode[1] = 'wander'
-            execute()
-        elif ():
-            mode[1] = 'follow'
-            execute()
+            execute(list)
         elif ():
             mode[1] = 'find'
-            execute()
+            execute(list)
+    elif (mode[0] == 'find'):
+        if ():
+            mode[1] = 'attack'
+            execute(list)
         elif ():
+            mode[1] = 'follow'
+            execute(list)
+    elif (mode[0] == 'follow'):
+        if ():
+            mode[1] = 'attack'
+            execute(list)
+        elif ():
+            mode[1] = 'find'
+            execute(list)
+        elif ():
+            mode[1] = 'wander'
+            execute(list)
+    elif (mode[0] == 'wander'):
+        if ():
             mode[1] = 'attack'
             execute()
         elif ():
-            mode[1] = 'rehearsal'
-            execute()
+            mode[1] = 'follow'
+            execute(list)
     else:
         mode[1] = mode[0]
-        execute()
+        execute(list)
 
-def execute():
+def execute(list = None):
     # define a decision filter(list[]) for every detection
     global mode
     global global_dist
@@ -125,30 +152,37 @@ def execute():
         global_speedx = 700
         global_speedy = 0
         global_speedr = 0
+        # update cache target
     elif (mode[1] == 'follow'):
         global_speedx = 700
         global_speedy = 0
         global_speedr = 0
+        # update cache target
     elif (mode[1] == 'find'):
-        global_speedx = 700
-        global_speedy = 0
-        global_speedr = 0
+        if():
+            global_speedr = 500 # define speedr based on test
+        elif ():
+            global_speedr = -500
+        # update cache target
     elif (mode[1] == 'attack'):
+        # based on list[0] and list[1]
         global_speedx = 700
         global_speedy = 0
         global_speedr = 0
+        # update cache target
     elif (mode[1] == 'rehearsal'):
         global_speedx = 0
         global_speedy = 0
         global_speedr = 0
-    print('executed state is %s, previous state is %s'%(mode[1],mode[0]))
+    print('executed state is %s, previous state is %s\n speed=(%s,%s,%s) dist =%s\n'\
+          %(mode[1],mode[0],global_speedx,global_speedy,global_speedr,global_dist))
     mode[0] = mode[1]
 
 
 def detect(save_img=False, stream_img=False):
-    global global_speedx
-    global global_speedy
-    global global_speedr
+    # global global_speedx
+    # global global_speedy
+    # global global_speedr
     img_size = 416
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     # Initialize

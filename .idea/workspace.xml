@@ -16,12 +16,13 @@
       <file leaf-file-name="detect_serial.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/detect_serial.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="534">
-              <caret line="109" column="25" selection-start-line="109" selection-start-column="25" selection-end-line="109" selection-end-column="25" />
+            <state relative-caret-position="2154">
+              <caret line="164" column="32" lean-forward="true" selection-start-line="164" selection-start-column="32" selection-end-line="164" selection-end-column="32" />
               <folding>
                 <element signature="e#1#12#0" expanded="true" />
+                <element signature="e#779#886#0" />
                 <element signature="e#586#2050#0" />
-                <element signature="e#2385#5500#0" />
+                <element signature="e#4632#7753#0" />
               </folding>
             </state>
           </provider>
@@ -270,8 +271,9 @@
           <caret line="63" column="19" lean-forward="true" selection-start-line="63" selection-start-column="19" selection-end-line="63" selection-end-column="19" />
           <folding>
             <element signature="e#1#12#0" expanded="true" />
+            <element signature="e#779#886#0" />
             <element signature="e#586#2050#0" />
-            <element signature="e#2385#5500#0" />
+            <element signature="e#4632#7753#0" />
           </folding>
         </state>
       </provider>
@@ -290,8 +292,9 @@
           <caret line="32" column="17" selection-start-line="32" selection-start-column="17" selection-end-line="32" selection-end-column="17" />
           <folding>
             <element signature="e#1#12#0" expanded="true" />
+            <element signature="e#779#886#0" />
             <element signature="e#586#2050#0" />
-            <element signature="e#2385#5500#0" />
+            <element signature="e#4632#7753#0" />
           </folding>
         </state>
       </provider>
@@ -317,14 +320,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$USER_HOME$/venv/Fusion/Lib/site-packages/numpy/__init__.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="534">
-          <caret line="109" column="25" selection-start-line="109" selection-start-column="25" selection-end-line="109" selection-end-column="25" />
+        <state relative-caret-position="2154">
+          <caret line="164" column="32" lean-forward="true" selection-start-line="164" selection-start-column="32" selection-end-line="164" selection-end-column="32" />
           <folding>
             <element signature="e#1#12#0" expanded="true" />
+            <element signature="e#779#886#0" />
             <element signature="e#586#2050#0" />
-            <element signature="e#2385#5500#0" />
+            <element signature="e#4632#7753#0" />
           </folding>
         </state>
       </provider>
