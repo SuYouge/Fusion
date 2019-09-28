@@ -2,7 +2,7 @@ import time
 import serial
 import struct
 import threading
-
+import random
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
@@ -19,8 +19,12 @@ nms_thres = 0.1
 
 global_dist = 0
 global_speedx = 0
-global_speedy = 0
-global_speedr = 0
+global_speedy = 0 # if speedy >0 move forward else backward
+global_speedr = 0 # if speedr >0 turn left else turn right
+global_decpos = [[0,0,0,0],[0,0,0,0]] # [obj1[x_upleft,x_downright], obj2[x_upleft,x_downright]]
+global_imgsize = [0,0] # [width,height]
+
+global_dist_thresh = 200
 
 mode = ['init','init']
 # mode_list = ['init','wander', 'follow', 'find', 'attack', 'rehearsal']
@@ -31,6 +35,14 @@ follow : focus on target and keep distance
 find   : find target
 attack : approach to target 
 rehearsal : undefined
+'''
+
+'''
+shape of list
+    list = [[0, [0, 0], [0, 0]]
+           [0, [0, 0], [0, 0]]]
+list cache
+
 '''
 
 serialPort = "COM14"  # 串口
@@ -98,15 +110,17 @@ class SerialPort:
 
 # make decision
 def decision(list = None):
-    print(list,global_dist)
     # calculate decision FSM value
+    global global_dist
     global mode
+    print(list, global_dist)
     #  FSM
     if (mode[0] == 'init'):
-        if ():
+        rod = random.randint(0, 9)
+        if (rod<=4):
             mode[1] = 'wander'
             execute(list)
-        elif ():
+        elif (rod>4):
             mode[1] = 'find'
             execute(list)
     elif (mode[0] == 'find'):
@@ -115,6 +129,9 @@ def decision(list = None):
             execute(list)
         elif ():
             mode[1] = 'follow'
+            execute(list)
+        elif ():
+            mode[1] = 'wander'
             execute(list)
     elif (mode[0] == 'follow'):
         if ():
@@ -133,6 +150,11 @@ def decision(list = None):
         elif ():
             mode[1] = 'follow'
             execute(list)
+    elif (mode[0] == 'attack'):
+        if ():
+            mode[1] = 'find'
+        elif():
+            mode[1] = 'follow'
     else:
         mode[1] = mode[0]
         execute(list)
@@ -144,36 +166,63 @@ def execute(list = None):
     global global_speedx
     global global_speedy
     global global_speedr
+    global global_decpos
+    global global_imgsize
+
     if (mode[1] == 'init'):
         global_speedx = 0
         global_speedy = 0
         global_speedr = 0
+        # update cache target
     elif(mode[1] == 'wander'):
-        global_speedx = 700
-        global_speedy = 0
-        global_speedr = 0
+        rander = random.randint(0, 8)
+        if (global_dist>global_dist_thresh):
+            if (rander<=2):
+                global_speedx = 0
+                global_speedy = 500
+                global_speedr = 0
+            elif (rander>2 & rander <=5):
+                global_speedx = 0
+                global_speedy = 300
+                global_speedr = 100
+            else:
+                global_speedx = 0
+                global_speedy = 300
+                global_speedr = -100
+        elif (global_dist<global_dist_thresh):
+            global_speedx = 0
+            global_speedy = -500
+            global_speedr = 0
         # update cache target
     elif (mode[1] == 'follow'):
-        global_speedx = 700
-        global_speedy = 0
-        global_speedr = 0
+        if (global_dist<global_dist_thresh):
+            kr = 0.5
+            global_speedx = 200
+            global_speedy = 0
+            global_speedr = suppress((global_imgsize[0] - (global_decpos[0][0] + global_decpos[0][2]) / 2) * kr)
+        else:
+            kr = 0.25
+            global_speedx = -200
+            global_speedy = 0
+            global_speedr = suppress((global_imgsize[0] - (global_decpos[0][0] + global_decpos[0][2]) / 2) * kr)
         # update cache target
     elif (mode[1] == 'find'):
-        if():
+        if (): # balloon disappear from left
             global_speedr = 500 # define speedr based on test
-        elif ():
+        elif (): #balloon disappear from right
             global_speedr = -500
         # update cache target
     elif (mode[1] == 'attack'):
-        # based on list[0] and list[1]
-        global_speedx = 700
-        global_speedy = 0
-        global_speedr = 0
+        if (global_dist>=80):
+            global_speedx = 0
+            global_speedy = 700
+            global_speedr = 0
         # update cache target
     elif (mode[1] == 'rehearsal'):
         global_speedx = 0
         global_speedy = 0
         global_speedr = 0
+
     print('executed state is %s, previous state is %s\n speed=(%s,%s,%s) dist =%s\n'\
           %(mode[1],mode[0],global_speedx,global_speedy,global_speedr,global_dist))
     mode[0] = mode[1]
@@ -224,9 +273,9 @@ def detect(save_img=False, stream_img=False):
         # Get detections
         #############################################
         mSerial.get_dist()
-        # global_speedx = 700
-        # global_speedy = 0
-        # global_speedr = 0
+        # global_speedx = 0
+        # global_speedy = 100
+        # global_speedr = 200
         #############################################
         img = torch.from_numpy(img).unsqueeze(0).to(device)
         pred, _ = model(img)
