@@ -1,22 +1,6 @@
 import cv2
 import time
 
-def make_photo():
-    """使用opencv拍照"""
-    cap = cv2.VideoCapture(0)  
-    while True:
-        ret, frame = cap.read()
-        if ret:
-            cv2.imshow("capture", frame) 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                file_name = "xieyang.jpeg"
-                cv2.imwrite(file_name, frame)
-                break
-        else:
-            break
- 
-    cap.release()
-    cv2.destroyAllWindows()
 def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21, flip_method=0) :   
     return ('nvarguscamerasrc ! ' 
     'video/x-raw(memory:NVMM), '

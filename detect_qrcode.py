@@ -77,7 +77,7 @@ def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=48
             capture_width, capture_height, framerate, flip_method, display_width, display_height))
 
 
-def make_video():
+def detect_qrcode():
     # cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     cap = cv2.VideoCapture(0)
     # fourcc = cv2.VideoWriter_fourcc(*"DIVX")
@@ -112,4 +112,4 @@ def make_video():
 
 
 if __name__ == '__main__':
-    make_video()
+    detect_qrcode()
