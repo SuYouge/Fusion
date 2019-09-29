@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="46a44c24-c7b4-48c6-b52a-ef653ffe0f41" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/cap_video.py" beforeDir="false" afterPath="$PROJECT_DIR$/cap_video.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/detect_qrcode.py" beforeDir="false" afterPath="$PROJECT_DIR$/detect_qrcode.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -17,8 +16,8 @@
       <file leaf-file-name="detect_serial.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/detect_serial.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="191">
-              <caret line="267" column="86" lean-forward="true" selection-start-line="267" selection-start-column="4" selection-end-line="267" selection-end-column="86" />
+            <state relative-caret-position="7800">
+              <caret line="267" column="86" selection-start-line="267" selection-start-column="4" selection-end-line="267" selection-end-column="86" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -29,12 +28,10 @@
       <file leaf-file-name="detect_qrcode.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/detect_qrcode.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="831">
-              <caret line="114" column="19" lean-forward="true" selection-start-line="114" selection-start-column="19" selection-end-line="114" selection-end-column="19" />
+            <state relative-caret-position="3420">
+              <caret line="114" column="19" selection-start-line="114" selection-start-column="19" selection-end-line="114" selection-end-column="19" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
-                <element signature="e#68#758#0" />
-                <element signature="e#970#2108#0" />
               </folding>
             </state>
           </provider>
@@ -43,8 +40,8 @@
       <file leaf-file-name="cap_video.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/cap_video.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="2" lean-forward="true" selection-start-line="2" selection-end-line="2" />
+            <state relative-caret-position="30">
+              <caret line="2" selection-start-line="2" selection-end-line="2" />
               <folding>
                 <element signature="e#0#10#0" expanded="true" />
               </folding>
@@ -263,6 +260,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.15455747" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -297,6 +295,36 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/detect_serial.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7800">
+          <caret line="267" column="86" lean-forward="true" selection-start-line="267" selection-start-column="4" selection-end-line="267" selection-end-column="86" />
+          <folding>
+            <element signature="e#0#11#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/cap_video.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" lean-forward="true" selection-start-line="2" selection-end-line="2" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/detect_qrcode.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3300">
+          <caret line="114" column="19" lean-forward="true" selection-start-line="114" selection-start-column="19" selection-end-line="114" selection-end-column="19" />
+          <folding>
+            <element signature="e#0#10#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1320">
@@ -378,8 +406,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/cap_video.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="2" lean-forward="true" selection-start-line="2" selection-end-line="2" />
+        <state relative-caret-position="30">
+          <caret line="2" selection-start-line="2" selection-end-line="2" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
           </folding>
@@ -388,8 +416,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="191">
-          <caret line="267" column="86" lean-forward="true" selection-start-line="267" selection-start-column="4" selection-end-line="267" selection-end-column="86" />
+        <state relative-caret-position="7800">
+          <caret line="267" column="86" selection-start-line="267" selection-start-column="4" selection-end-line="267" selection-end-column="86" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
@@ -398,12 +426,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/detect_qrcode.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="831">
-          <caret line="114" column="19" lean-forward="true" selection-start-line="114" selection-start-column="19" selection-end-line="114" selection-end-column="19" />
+        <state relative-caret-position="3420">
+          <caret line="114" column="19" selection-start-line="114" selection-start-column="19" selection-end-line="114" selection-end-column="19" />
           <folding>
             <element signature="e#0#10#0" expanded="true" />
-            <element signature="e#68#758#0" />
-            <element signature="e#970#2108#0" />
           </folding>
         </state>
       </provider>
