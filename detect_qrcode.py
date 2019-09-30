@@ -3,41 +3,89 @@ import time
 import numpy as np
 import copy
 import random
+import serial
+import struct
+import re
+import threading
 
-box_num = 2
+global_dist = 0
+global_speedx = 0
+global_speedy = 0 # if speedy >0 move forward else backward
+global_speedr = 0 # if speedr >0 turn left else turn right
+global_decpos = [[0,0,0,0],[0,0,0,0]] # [obj1[x_upleft,x_downright], obj2[x_upleft,x_downright]]
+global_imgsize = [0,0] # [width,height]
+global_dist_thresh = 200
+serialPort = "COM14"  # serial no
+baudRate = 9600  # Baudrate
+box_num = 1
+test_mode = True
+
+def suppress(speed):
+    if (speed>1000):
+        speed = 1000
+    elif(speed<-1000):
+        speed = -1000
+    # x = speed
+    # speed = 1 / (1 + np.exp(-x))
+    return speed
+
+# serial port operation
+class SerialPort:
+    message = ''
+
+    def __init__(self, port, buand):
+        super(SerialPort, self).__init__()
+        self.port = serial.Serial(port, buand)
+        self.port.close()
+        if not self.port.isOpen():
+            self.port.open()
+
+    def port_open(self):
+        if not self.port.isOpen():
+            self.port.open()
+
+    def port_close(self):
+        self.port.close()
+
+    def get_dist(self):
+        # data = input("请输入要发送的数据（非中文）并同时接收数据: ")
+        # n = self.port.write((data + '\n').encode())
+        self.package = struct.pack('<3s3hs', b'\xff\xee\x02', 0, 0, 0, b'\x00')
+        n = self.port.write(self.package)
+        return n
+
+    def set_speed(self):
+        global global_speedx
+        global global_speedy
+        global global_speedr
+        # self.n=0
+        # while (self.n%100 == 0):
+        while True:
+            # self.n+=1
+            self.package = struct.pack('<3s3hs', b'\xff\xfe\x01', global_speedx, global_speedy,global_speedr, b'\x00')
+            n = self.port.write(self.package)
+            print(global_speedx,global_speedy,global_speedr)
+        # return n
+
+    def read_data(self):
+        global global_dist
+        while True:
+            # self.message = self.port.readline()
+            self.Bytedist = self.port.read(13)
+            str_dist = str(self.Bytedist, encoding="utf-8")
+            self.message = int(re.findall(r'\d+', str_dist)[0])
+            global_dist = self.message
+            # print(self.message)
+
+def model():
+    global global_speedx
+    global global_speedy
+    global global_speedr
+    global_speedx =0
+    global_speedy = 100
+    global_speedr = 0
 
 def find_box(frame):
-    # read img and copy
-
-    img = copy.deepcopy(frame)
-    ##cv2.imshow('img',img)
-
-    # make img into gray
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ##cv2.imshow('gray',gray)
-
-    # threshold
-    ret, thre = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
-    # cv2.imshow('thre',thre)
-
-    # erode
-    kernel = np.ones((3, 3), np.uint8)
-    erosion = cv2.erode(thre, kernel)
-    # erosion = cv2.erode(erosion, kernel)
-
-    # cv2.imshow('erosion',erosion)
-
-    # findContours
-    contours, hier = cv2.findContours(erosion,
-                                            cv2.RETR_LIST,
-                                            # cv2.RETR_EXTERNAL,
-                                            cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(erosion, contours, -1, (0, 0, 255), 3)
-    cv2.imshow('erosion',erosion)
-    return contours, gray
-
-
-def find_box0(frame):
     box = []
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gradX = cv2.Sobel(gray, cv2.CV_32F, 1, 0, -1)
@@ -56,12 +104,34 @@ def find_box0(frame):
         for index in range(box_num):
             c = sorted(cnts, key=cv2.contourArea, reverse=True)[index]
             rect = cv2.minAreaRect(c)
-            box.append(np.int0(cv2.boxPoints(rect)))
+            #
+            box_list = np.int0(cv2.boxPoints(rect))
+            centerx = (box_list[0][0] +box_list[2][0])/2
+            centery = (box_list[0][1] + box_list[2][1]) / 2
+            length = ((((box_list[0][0] - box_list[1][0]))**2 +(box_list[0][1] - box_list[1][1])**2)**0.5)*0.5
+            L_up = (int(centerx-0.5*length),int(centery-0.5*length))
+            R_down = ((int(centerx+0.5*length),int(centery+0.5*length)))
+            print(L_up,R_down)
+            print(box_list)
+            box_list = (L_up,R_down)
+            box.append(box_list)
+            #
     elif len(cnts)<=box_num:
         for index in range(len(cnts)):
             c = sorted(cnts, key=cv2.contourArea, reverse=True)[index]
             rect = cv2.minAreaRect(c)
-            box.append(np.int0(cv2.boxPoints(rect)))
+            #
+            box_list = np.int0(cv2.boxPoints(rect))
+            centerx = (box_list[0][0] +box_list[2][0])/2
+            centery = (box_list[0][1] + box_list[2][1]) / 2
+            length = ((((box_list[0][0] - box_list[1][0]))**2 +(box_list[0][1] - box_list[1][1])**2)**0.5)*0.5
+            L_up = (int(centerx-0.5*length),int(centery-0.5*length))
+            R_down = ((int(centerx+0.5*length),int(centery+0.5*length)))
+            print(L_up,R_down)
+            print(box_list)
+            box_list = (L_up,R_down)
+            box.append(box_list)
+            #
     return box
 
 def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21,
@@ -76,7 +146,6 @@ def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=48
             'video/x-raw, format=(string)BGR ! appsink' % (
             capture_width, capture_height, framerate, flip_method, display_width, display_height))
 
-
 def detect_qrcode():
     # cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     cap = cv2.VideoCapture(0)
@@ -87,19 +156,27 @@ def detect_qrcode():
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(3)]
     while (cap.isOpened()):
         ret, frame = cap.read()
+        ###
+        if (test_mode is not True):
+            mSerial.get_dist()
+            print(global_dist)
+            model()
+        ###
         # cv2.flip(frame, 0, frame) # uncomment in jetson nano
         if ret:
-            box = find_box0(frame)
+            box = find_box(frame)
             if len(box)>box_num:
                 for index in range (box_num):
                     print("box %s is at\n"%index)
                     print(box[index])
-                    cv2.drawContours(frame, [box[index]], 0, colors[index], 3)
+                    cv2.rectangle(frame, box[index][0], box[index][1], colors[index], 3)
+                    # cv2.drawContours(frame, [box[index]], 0, colors[index], 3)
             elif len(box)<=box_num:
                 for index in range (len(box)):
                     print("box %s is at\n"%index)
                     print(box[index])
-                    cv2.drawContours(frame, [box[index]], 0, colors[index], 3)
+                    # cv2.drawContours(frame, [box[index]], 0, colors[index], 3)
+                    cv2.rectangle(frame, box[index][0], box[index][1], colors[index], 3)
             # out.write(frame)
             cv2.imshow('frame', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -112,4 +189,12 @@ def detect_qrcode():
 
 
 if __name__ == '__main__':
+    ###
+    if (test_mode is not True):
+        mSerial = SerialPort(serialPort, baudRate)
+        t1 = threading.Thread(target=mSerial.read_data)
+        t1.start()
+        t2 = threading.Thread(target=mSerial.set_speed)
+        t2.start()
+    ###
     detect_qrcode()

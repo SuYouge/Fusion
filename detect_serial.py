@@ -21,7 +21,7 @@ global_dist = 0
 global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
-global_decpos = [[0,0,0,0],[0,0,0,0]] # [obj1[x_upleft,x_downright], obj2[x_upleft,x_downright]]
+global_decpos = [[0,0,0,0],[0,0,0,0]] # [obj1[p_upleft,p_downright], obj2[p_upleft,p_downright]]
 global_imgsize = [0,0] # [width,height]
 
 global_dist_thresh = 200
@@ -39,14 +39,15 @@ rehearsal : undefined
 
 '''
 shape of list
-    list = [[0, [0, 0], [0, 0]]
-           [0, [0, 0], [0, 0]]]
+    list = [[0, [0, 0], [0, 0]] balloon
+           [0, [0, 0], [0, 0]]] ball
 list cache
+
 
 '''
 
-serialPort = "COM14"  # 串口
-baudRate = 9600  # 波特率
+serialPort = "COM14"  # serial no
+baudRate = 9600  # Baudrate
 
 
 # limited speed
@@ -59,7 +60,7 @@ def suppress(speed):
     # speed = 1 / (1 + np.exp(-x))
     return speed
 
-
+# serial port operation
 class SerialPort:
     message = ''
 
