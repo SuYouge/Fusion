@@ -1,12 +1,12 @@
 import cv2
-import time
 import numpy as np
-import copy
 import random
 import serial
 import struct
 import re
 import threading
+import copy
+import time
 
 global_dist = 0
 global_speedx = 0
@@ -20,6 +20,10 @@ baudRate = 9600  # Baudrate
 box_num = 1
 test_mode = True
 
+length_thresh = 0.05
+
+cache_box = []
+
 def suppress(speed):
     if (speed>1000):
         speed = 1000
@@ -28,6 +32,7 @@ def suppress(speed):
     # x = speed
     # speed = 1 / (1 + np.exp(-x))
     return speed
+
 
 # serial port operation
 class SerialPort:
@@ -77,6 +82,7 @@ class SerialPort:
             global_dist = self.message
             # print(self.message)
 
+
 def model():
     global global_speedx
     global global_speedy
@@ -84,6 +90,7 @@ def model():
     global_speedx =0
     global_speedy = 100
     global_speedr = 0
+
 
 def find_box(frame):
     box = []
@@ -93,12 +100,14 @@ def find_box(frame):
     gradient = cv2.subtract(gradX, gradY)
     gradient = cv2.convertScaleAbs(gradient)
     blurred = cv2.blur(gradient, (9, 9))
-    (_, thresh) = cv2.threshold(blurred, 160, 160, cv2.THRESH_BINARY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7))
+    (_, thresh) = cv2.threshold(blurred, 80, 160, cv2.THRESH_BINARY) ### 160，160
+    cv2.imshow('thresh', thresh)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7)) # 21,7
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    closed = cv2.erode(closed, None, iterations=16) # 4
+    cv2.imshow('closed', closed)
+    closed = cv2.dilate(closed, None, iterations=8) # 4
 
-    closed = cv2.erode(closed, None, iterations=4)
-    closed = cv2.dilate(closed, None, iterations=4)
     cnts, hierarchy = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if len(cnts)>box_num:
         for index in range(box_num):
@@ -109,10 +118,11 @@ def find_box(frame):
             centerx = (box_list[0][0] +box_list[2][0])/2
             centery = (box_list[0][1] + box_list[2][1]) / 2
             length = ((((box_list[0][0] - box_list[1][0]))**2 +(box_list[0][1] - box_list[1][1])**2)**0.5)*0.5
+            length = calength(box_list)
             L_up = (int(centerx-0.5*length),int(centery-0.5*length))
             R_down = ((int(centerx+0.5*length),int(centery+0.5*length)))
-            print(L_up,R_down)
-            print(box_list)
+            # print(L_up,R_down)
+            # print(box_list)
             box_list = (L_up,R_down)
             box.append(box_list)
             #
@@ -124,15 +134,31 @@ def find_box(frame):
             box_list = np.int0(cv2.boxPoints(rect))
             centerx = (box_list[0][0] +box_list[2][0])/2
             centery = (box_list[0][1] + box_list[2][1]) / 2
-            length = ((((box_list[0][0] - box_list[1][0]))**2 +(box_list[0][1] - box_list[1][1])**2)**0.5)*0.5
+            # length = (((box_list[0][0] - box_list[1][0]))**2 +(box_list[0][1] - box_list[1][1])**2)**0.5
+            length = calength(box_list)
             L_up = (int(centerx-0.5*length),int(centery-0.5*length))
             R_down = ((int(centerx+0.5*length),int(centery+0.5*length)))
-            print(L_up,R_down)
-            print(box_list)
+            # print(L_up,R_down)
+            # print(box_list)
             box_list = (L_up,R_down)
             box.append(box_list)
             #
+    # nor_box = normalize(box, frame.shape)
+    box = box_filter(box, frame)
     return box
+
+def box_filter(box,frame):
+    nor_box = normalize(box, frame.shape)
+    if len(nor_box):
+        for i in range(len(nor_box)):
+            l = calength(nor_box[i])
+            if l < length_thresh:
+                box.pop(i)
+    return box
+
+def calength(box):
+    length = (((box[0][0] - box[1][0])) ** 2 + (box[0][1] - box[1][1]) ** 2) ** 0.5
+    return length
 
 def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21,
                        flip_method=0):
@@ -146,13 +172,25 @@ def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=48
             'video/x-raw, format=(string)BGR ! appsink' % (
             capture_width, capture_height, framerate, flip_method, display_width, display_height))
 
+
+# return normalized box position
+def normalize(box,img_size):
+    norm_box = []
+    lx,ly,rx,ry = 0,0,0,0
+    if len(box):
+        for index in range(len(box)):
+            lx = box[index][0][0]/img_size[0]
+            ly = box[index][0][1] / img_size[1]
+            rx = box[index][1][0] / img_size[0]
+            ry= box[index][1][1] / img_size[1]
+            norm_box.append([(lx,ly),(rx,ry)])
+    # print(norm_box)
+    return norm_box
+
+
 def detect_qrcode():
     # cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     cap = cv2.VideoCapture(0)
-    # fourcc = cv2.VideoWriter_fourcc(*"DIVX")
-    # now = time.strftime("%Y-%m-%d-%H_%M_%S", time.localtime(time.time()))
-    # fname = "data_video/" + now + r".mp4"
-    # out = cv2.VideoWriter(fname, fourcc, 20.0, (480, 360))
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(3)]
     while (cap.isOpened()):
         ret, frame = cap.read()
@@ -165,26 +203,25 @@ def detect_qrcode():
         # cv2.flip(frame, 0, frame) # uncomment in jetson nano
         if ret:
             box = find_box(frame)
+            # nor_box = normalize(box, frame.shape)
             if len(box)>box_num:
                 for index in range (box_num):
-                    print("box %s is at\n"%index)
-                    print(box[index])
+                    # print("box %s is at\n"%index)
+                    # print(box[index])
                     cv2.rectangle(frame, box[index][0], box[index][1], colors[index], 3)
                     # cv2.drawContours(frame, [box[index]], 0, colors[index], 3)
             elif len(box)<=box_num:
                 for index in range (len(box)):
-                    print("box %s is at\n"%index)
-                    print(box[index])
+                    # print("box %s is at\n"%index)
+                    # print(box[index])
                     # cv2.drawContours(frame, [box[index]], 0, colors[index], 3)
                     cv2.rectangle(frame, box[index][0], box[index][1], colors[index], 3)
-            # out.write(frame)
             cv2.imshow('frame', frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             break
     cap.release()
-    # out.release()
     cv2.destroyAllWindows()
 
 

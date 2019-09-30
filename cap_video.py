@@ -11,8 +11,6 @@ def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=4
     'videoconvert ! '
     'video/x-raw, format=(string)BGR ! appsink'  % (capture_width,capture_height,framerate,flip_method,display_width,display_height))
 
- 
- 
 def make_video():
     cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     fourcc = cv2.VideoWriter_fourcc(*"DIVX")
