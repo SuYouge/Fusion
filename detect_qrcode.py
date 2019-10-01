@@ -17,12 +17,38 @@ global_imgsize = [0,0] # [width,height]
 global_dist_thresh = 200
 serialPort = "COM14"  # serial no
 baudRate = 9600  # Baudrate
-box_num = 1
+box_num = 3
 test_mode = True
 
 length_thresh = 0.05
 
 cache_box = []
+cache_size = 3
+
+def box_filter(box,frame):
+    nor_box = normalize(box, frame.shape)
+    if len(box):
+        for i in range(len(box)):
+            l = calength(nor_box[i])
+            if l < length_thresh:
+                box.pop(i)
+    return box
+
+def calength(box):
+    length = (((box[0][0] - box[1][0])) ** 2 + (box[0][1] - box[1][1]) ** 2) ** 0.5
+    return length
+
+def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21,
+                       flip_method=0):
+    return ('nvarguscamerasrc ! '
+            'video/x-raw(memory:NVMM), '
+            'width=(int)%d, height=(int)%d, '
+            'format=(string)NV12, framerate=(fraction)%d/1 ! '
+            'nvvidconv flip-method=%d ! '
+            'video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! '
+            'videoconvert ! '
+            'video/x-raw, format=(string)BGR ! appsink' % (
+            capture_width, capture_height, framerate, flip_method, display_width, display_height))
 
 def suppress(speed):
     if (speed>1000):
@@ -104,9 +130,9 @@ def find_box(frame):
     cv2.imshow('thresh', thresh)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 7)) # 21,7
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-    closed = cv2.erode(closed, None, iterations=16) # 4
+    closed = cv2.erode(closed, None, iterations=20) # 4 16
     cv2.imshow('closed', closed)
-    closed = cv2.dilate(closed, None, iterations=8) # 4
+    closed = cv2.dilate(closed, None, iterations=8) # 4 8
 
     cnts, hierarchy = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if len(cnts)>box_num:
@@ -144,33 +170,8 @@ def find_box(frame):
             box.append(box_list)
             #
     # nor_box = normalize(box, frame.shape)
-    box = box_filter(box, frame)
+    # box = box_filter(box, frame)
     return box
-
-def box_filter(box,frame):
-    nor_box = normalize(box, frame.shape)
-    if len(nor_box):
-        for i in range(len(nor_box)):
-            l = calength(nor_box[i])
-            if l < length_thresh:
-                box.pop(i)
-    return box
-
-def calength(box):
-    length = (((box[0][0] - box[1][0])) ** 2 + (box[0][1] - box[1][1]) ** 2) ** 0.5
-    return length
-
-def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21,
-                       flip_method=0):
-    return ('nvarguscamerasrc ! '
-            'video/x-raw(memory:NVMM), '
-            'width=(int)%d, height=(int)%d, '
-            'format=(string)NV12, framerate=(fraction)%d/1 ! '
-            'nvvidconv flip-method=%d ! '
-            'video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! '
-            'videoconvert ! '
-            'video/x-raw, format=(string)BGR ! appsink' % (
-            capture_width, capture_height, framerate, flip_method, display_width, display_height))
 
 
 # return normalized box position
@@ -188,6 +189,21 @@ def normalize(box,img_size):
     return norm_box
 
 
+def inqueue(box):
+    global cache_box
+    if len(cache_box)<= cache_size-1:
+        cache_box.append(box)
+    elif len(cache_box) > cache_size-1:
+        print(">3")
+        cache_box.append(box)
+        for i in range(1):  ##左移
+            cache_box.insert(len(cache_box), cache_box[0])
+            cache_box.remove(cache_box[0])
+            cache_box.pop()
+    print("is %s"%cache_box)
+    return cache_box
+
+
 def detect_qrcode():
     # cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     cap = cv2.VideoCapture(0)
@@ -199,10 +215,12 @@ def detect_qrcode():
             mSerial.get_dist()
             print(global_dist)
             model()
+            # decision(queue)
         ###
         # cv2.flip(frame, 0, frame) # uncomment in jetson nano
         if ret:
             box = find_box(frame)
+            queue = inqueue(normalize(box, frame.shape))
             # nor_box = normalize(box, frame.shape)
             if len(box)>box_num:
                 for index in range (box_num):
