@@ -115,8 +115,10 @@ class SerialPort:
             global_dist = self.message
             print(self.message)
 
+
 def center(ave):
     pass
+
 
 def model(ave):
     global global_speedx
