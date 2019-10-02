@@ -5,6 +5,7 @@ import serial
 import struct
 import re
 import threading
+import sys
 import copy
 import time
 
@@ -14,16 +15,19 @@ global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
 global_decpos = [[0,0,0,0],[0,0,0,0]] # [obj1[x_upleft,x_downright], obj2[x_upleft,x_downright]]
 global_imgsize = [0,0] # [width,height]
+
 global_dist_thresh = 200
 serialPort = "COM14"  # serial no
 baudRate = 9600  # Baudrate
-box_num = 3
-test_mode = True
+box_num = 1
+
+test_mode = False
 
 length_thresh = 0.05
 
 cache_box = []
 cache_size = 3
+
 
 def box_filter(box,frame):
     nor_box = normalize(box, frame.shape)
@@ -34,9 +38,11 @@ def box_filter(box,frame):
                 box.pop(i)
     return box
 
+
 def calength(box):
     length = (((box[0][0] - box[1][0])) ** 2 + (box[0][1] - box[1][1]) ** 2) ** 0.5
     return length
+
 
 def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21,
                        flip_method=0):
@@ -49,6 +55,7 @@ def gstreamer_pipeline(capture_width=3280, capture_height=2464, display_width=48
             'videoconvert ! '
             'video/x-raw, format=(string)BGR ! appsink' % (
             capture_width, capture_height, framerate, flip_method, display_width, display_height))
+
 
 def suppress(speed):
     if (speed>1000):
@@ -95,7 +102,7 @@ class SerialPort:
             # self.n+=1
             self.package = struct.pack('<3s3hs', b'\xff\xfe\x01', global_speedx, global_speedy,global_speedr, b'\x00')
             n = self.port.write(self.package)
-            print(global_speedx,global_speedy,global_speedr)
+            print("speedx = %s, speedy = %s, speedr = %s"%(global_speedx,global_speedy,global_speedr))
         # return n
 
     def read_data(self):
@@ -106,16 +113,47 @@ class SerialPort:
             str_dist = str(self.Bytedist, encoding="utf-8")
             self.message = int(re.findall(r'\d+', str_dist)[0])
             global_dist = self.message
-            # print(self.message)
+            print(self.message)
 
+def center(ave):
+    pass
 
-def model():
+def model(ave):
     global global_speedx
     global global_speedy
     global global_speedr
-    global_speedx =0
-    global_speedy = 100
-    global_speedr = 0
+    center_p = center(ave)
+    if ((ave[0][0])>0.5):
+        print("ave is %s" % ave)
+        global_speedx =0
+        global_speedy = 0
+        global_speedr = 100
+    else:
+        global_speedx = 0
+        global_speedy = 0
+        global_speedr = 0
+
+
+def cal_average(cache_box):
+    lux, luy, rdx, rdy = 0, 0, 0, 0
+    n = 0
+    if len(cache_box):
+        for i in range (len(cache_box)):
+            if len(cache_box[i]):
+                n = n + 1
+                # print(cache_box[i][0])
+                lux = lux + cache_box[i][0][0][0]
+                luy = luy + cache_box[i][0][0][1]
+                rdx = rdx + cache_box[i][0][1][0]
+                rdy = rdy + cache_box[i][0][1][1]
+    if n == 0:
+        ave = [(0,0),(0,0)]
+        print("ave is %s" % ave)
+    elif n>0:
+        ave = [(lux/n,luy/n),(rdx/n,rdy/n)]
+        # print("ave is %s"%ave)
+    return ave
+
 
 
 def find_box(frame):
@@ -133,7 +171,6 @@ def find_box(frame):
     closed = cv2.erode(closed, None, iterations=20) # 4 16
     cv2.imshow('closed', closed)
     closed = cv2.dilate(closed, None, iterations=8) # 4 8
-
     cnts, hierarchy = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if len(cnts)>box_num:
         for index in range(box_num):
@@ -190,37 +227,40 @@ def normalize(box,img_size):
 
 
 def inqueue(box):
-    global cache_box
+    # global cache_box
     if len(cache_box)<= cache_size-1:
         cache_box.append(box)
     elif len(cache_box) > cache_size-1:
-        print(">3")
+        # print(">3")
         cache_box.append(box)
         for i in range(1):  ##左移
             cache_box.insert(len(cache_box), cache_box[0])
             cache_box.remove(cache_box[0])
             cache_box.pop()
-    print("is %s"%cache_box)
-    return cache_box
+    ave_box = cal_average(cache_box)
+    # print("is %s"%cache_box)
+    return cache_box, ave_box
 
 
 def detect_qrcode():
     # cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     cap = cv2.VideoCapture(0)
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(3)]
+    # queue = []
     while (cap.isOpened()):
         ret, frame = cap.read()
-        ###
-        if (test_mode is not True):
-            mSerial.get_dist()
-            print(global_dist)
-            model()
-            # decision(queue)
-        ###
         # cv2.flip(frame, 0, frame) # uncomment in jetson nano
         if ret:
             box = find_box(frame)
-            queue = inqueue(normalize(box, frame.shape))
+            # print(box[0])
+            queue, ave = inqueue(normalize(box, frame.shape))
+            ###
+            if (test_mode is not True):
+                mSerial.get_dist()
+                print("dist is %s" % global_dist)
+                model(ave)
+                # decision(queue)
+            ###
             # nor_box = normalize(box, frame.shape)
             if len(box)>box_num:
                 for index in range (box_num):
