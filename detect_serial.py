@@ -17,6 +17,9 @@ data = 'data/ball.data'
 conf_thres = 0.8
 nms_thres = 0.2
 
+cache_box = []
+cache_size = 3
+
 global_dist = 0
 global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
@@ -34,7 +37,8 @@ serialPort = "COM14"  # serial no
 baudRate = 9600  # Baudrate
 
 test_mode = True
-list = [[0, [0, 0], [0, 0]], [0, [0, 0], [0, 0]]]
+# list = [[0, [0, 0], [0, 0], 0], \
+#         [0, [0, 0], [0, 0], 0]]
 '''
 wander : avoid barrel and looking for target
 follow : focus on target and keep distance
@@ -45,8 +49,8 @@ rehearsal : undefined
 
 '''
 shape of list
-    list = [[0, [0, 0], [0, 0]] balloon
-           [0, [0, 0], [0, 0]]] ball
+    list = [[0, [0, 0], [0, 0], 0] balloon
+           [0, [0, 0], [0, 0], 0]] ball
 list cache
 '''
 
@@ -231,9 +235,54 @@ def execute(list = None):
           %(mode[1],mode[0],global_speedx,global_speedy,global_speedr,global_dist))
     mode[0] = mode[1]
 
+def mode_test():
+    # print("is %s" % cache_box)
+    center = cal_ave()
+    print(center)
+    pass
+
+
+def cal_ave():
+    global cache_box
+    x1,y1 = 0,0
+    x2,y2 = 0,0
+    p = 0
+    cnt = 0
+    center = [(0,0),0]
+    if len(cache_box):
+        for i in range(len(cache_box)):
+            if (cache_box[i][0][0] == 1):
+                x1 = x1 + cache_box[i][0][1][0]
+                y1 = y1 + cache_box[i][0][1][1]
+                # print("cache box i is %s" % cache_box[i][0][1][0])
+                x2 = x2 + cache_box[i][0][2][0]
+                y2 = y2 + cache_box[i][0][2][1]
+                # print("cache box i is %s" % cache_box[i][0][2][0])
+                p = p + cache_box[i][0][3]
+                # print("cache box i is %s" % cache_box[i][0][3])
+                cnt = cnt + 1
+                center = [((x1/cnt+x2/cnt)/2,(y1/cnt+y2/cnt)/2),p/cnt]
+        else:
+            pass
+    else:
+        pass
+    return center
+
+def inqueue(box):
+    global cache_box
+    if len(cache_box)<= cache_size-1:
+        cache_box.append(box)
+    elif len(cache_box) > cache_size-1:
+        # print(">3")
+        cache_box.append(box)
+        for i in range(1):  ##左移
+            cache_box.insert(len(cache_box), cache_box[0])
+            cache_box.remove(cache_box[0])
+            cache_box.pop()
+    # ave_box = cal_average(cache_box)
+    # print("is %s"%cache_box)
 
 def detect(save_img=False, stream_img=False):
-    global list
     img_size = 416
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     # Initialize
@@ -272,18 +321,12 @@ def detect(save_img=False, stream_img=False):
     t0 = time.time()
     for path, img, im0, vid_cap in dataset:
         t = time.time()
-        #############################################
-        if test_mode is not True:
-            mSerial.get_dist()
-            # global_speedx = 0
-            # global_speedy = 100
-            # global_speedr = 200
-        #############################################
         img = torch.from_numpy(img).unsqueeze(0).to(device)
         pred, _ = model(img)
         # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
         det = non_max_suppression(pred.float(), conf_thres, nms_thres)[0]
         s = '%gx%g ' % img.shape[2:]  # print string
+
         if det is not None and len(det):
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -293,14 +336,23 @@ def detect(save_img=False, stream_img=False):
                 n = (det[:, -1] == c).sum()  # detections per class
                 s += '%g %ss, ' % (n, classes[int(c)])  # add to string
             # Write results
-            # list_1 = [0, [0, 0], [0, 0]]
-            # list_2 = [0, [0, 0], [0, 0]]
             for *xyxy, conf, _, cls in det:
                 if save_img or stream_img:  # Add bbox to image
                     label = '%s %.2f' % (classes[int(cls)], conf)
-                    print("label is %s"%label)
+                    # print("label is %s"%label)
                     list= plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
-            print(list)
+            # print(list)
+        else:
+            list = [[0, [0, 0], [0, 0], 0], \
+                    [0, [0, 0], [0, 0], 0]]
+        #####################TEMP####################
+        inqueue(list)
+        mode_test()
+        #############################################
+        if test_mode is not True:
+            mSerial.get_dist()
+            # mode_test()
+        #############################################
         print('%sDone. (%.3fs)' % (s, time.time() - t))
         # Stream results
         if stream_img:

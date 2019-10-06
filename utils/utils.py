@@ -698,8 +698,8 @@ def fitness(x):
 
 # Plotting functions ---------------------------------------------------------------------------------------------------
 def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
-    list_1 = [0, [0, 0], [0, 0]]
-    list_2 = [0, [0, 0], [0, 0]]
+    list_1 = [0, [0, 0], [0, 0], 0]
+    list_2 = [0, [0, 0], [0, 0], 0]
     # Plots one bounding box on image img
     tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line thickness
     color = color or [random.randint(0, 255) for _ in range(3)]
@@ -718,9 +718,13 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
         cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
         ###
         name = ''.join(re.findall(r'[A-Za-z]', label))
+        posbility = ''.join(re.findall(r"\d+\.?\d*", label))
+        # normalize coord shape[h,w]
+        c1n, c2n = ((floatn(x[0]/img.shape[1]), floatn(x[1]/img.shape[0])), (floatn(x[2]/img.shape[1]), floatn(x[3]/img.shape[0])))
         list[name_list.index(name)][0] = 1
-        list[name_list.index(name)][1] = c1
-        list[name_list.index(name)][2] = c2
+        list[name_list.index(name)][1] = c1n
+        list[name_list.index(name)][2] = c2n
+        list[name_list.index(name)][3] = float(posbility)
         # print("label is %s"%label)
         ###
     return list ###
