@@ -697,7 +697,9 @@ def fitness(x):
 
 
 # Plotting functions ---------------------------------------------------------------------------------------------------
-def plot_one_box(x, img, color=None, label=None, line_thickness=None, list_1=None, list_2=None):
+def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
+    list_1 = [0, [0, 0], [0, 0]]
+    list_2 = [0, [0, 0], [0, 0]]
     # Plots one bounding box on image img
     tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line thickness
     color = color or [random.randint(0, 255) for _ in range(3)]
@@ -719,6 +721,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None, list_1=Non
         list[name_list.index(name)][0] = 1
         list[name_list.index(name)][1] = c1
         list[name_list.index(name)][2] = c2
+        # print("label is %s"%label)
         ###
     return list ###
 

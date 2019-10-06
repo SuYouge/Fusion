@@ -9,13 +9,13 @@ from utils.utils import *
 
 img_size = 416
 out = 'output'
-weights = 'weights/tiny-thresh06.pt'
+weights = 'weights/best.pt'
 # half = True
 source = '0'
 cfg = 'cfg/yolov3-tiny-2cls.cfg'
 data = 'data/ball.data'
-conf_thres = 0.7
-nms_thres = 0.1
+conf_thres = 0.8
+nms_thres = 0.2
 
 global_dist = 0
 global_speedx = 0
@@ -29,6 +29,12 @@ global_dist_thresh = 200
 mode = ['init','init']
 # mode_list = ['init','wander', 'follow', 'find', 'attack', 'rehearsal']
 
+# /dev/ttyUSB0 for ubuntu
+serialPort = "COM14"  # serial no
+baudRate = 9600  # Baudrate
+
+test_mode = True
+list = [[0, [0, 0], [0, 0]], [0, [0, 0], [0, 0]]]
 '''
 wander : avoid barrel and looking for target
 follow : focus on target and keep distance
@@ -42,12 +48,7 @@ shape of list
     list = [[0, [0, 0], [0, 0]] balloon
            [0, [0, 0], [0, 0]]] ball
 list cache
-
-
 '''
-
-serialPort = "COM14"  # serial no
-baudRate = 9600  # Baudrate
 
 
 # limited speed
@@ -59,6 +60,7 @@ def suppress(speed):
     # x = speed
     # speed = 1 / (1 + np.exp(-x))
     return speed
+
 
 # serial port operation
 class SerialPort:
@@ -95,7 +97,7 @@ class SerialPort:
             # self.n+=1
             self.package = struct.pack('<3s3hs', b'\xff\xfe\x01', global_speedx, global_speedy,global_speedr, b'\x00')
             n = self.port.write(self.package)
-            print(global_speedx,global_speedy,global_speedr)
+            print("speedx = %s, speedy = %s, speedr = %s \n"%(global_speedx,global_speedy,global_speedr))
         # return n
 
     def read_data(self):
@@ -114,7 +116,7 @@ def decision(list = None):
     # calculate decision FSM value
     global global_dist
     global mode
-    print(list, global_dist)
+    # print(list, global_dist)
     #  FSM
     if (mode[0] == 'init'):
         rod = random.randint(0, 9)
@@ -159,6 +161,7 @@ def decision(list = None):
     else:
         mode[1] = mode[0]
         execute(list)
+
 
 def execute(list = None):
     # define a decision filter(list[]) for every detection
@@ -230,9 +233,7 @@ def execute(list = None):
 
 
 def detect(save_img=False, stream_img=False):
-    # global global_speedx
-    # global global_speedy
-    # global global_speedr
+    global list
     img_size = 416
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     # Initialize
@@ -271,19 +272,18 @@ def detect(save_img=False, stream_img=False):
     t0 = time.time()
     for path, img, im0, vid_cap in dataset:
         t = time.time()
-        # Get detections
         #############################################
-        mSerial.get_dist()
-        # global_speedx = 0
-        # global_speedy = 100
-        # global_speedr = 200
+        if test_mode is not True:
+            mSerial.get_dist()
+            # global_speedx = 0
+            # global_speedy = 100
+            # global_speedr = 200
         #############################################
         img = torch.from_numpy(img).unsqueeze(0).to(device)
         pred, _ = model(img)
         # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
         det = non_max_suppression(pred.float(), conf_thres, nms_thres)[0]
         s = '%gx%g ' % img.shape[2:]  # print string
-        list=[[0, [0, 0], [0, 0]],[0, [0, 0], [0, 0]]]
         if det is not None and len(det):
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -293,26 +293,30 @@ def detect(save_img=False, stream_img=False):
                 n = (det[:, -1] == c).sum()  # detections per class
                 s += '%g %ss, ' % (n, classes[int(c)])  # add to string
             # Write results
-            list_1 = [0, [0, 0], [0, 0]]
-            list_2 = [0, [0, 0], [0, 0]]
+            # list_1 = [0, [0, 0], [0, 0]]
+            # list_2 = [0, [0, 0], [0, 0]]
             for *xyxy, conf, _, cls in det:
                 if save_img or stream_img:  # Add bbox to image
                     label = '%s %.2f' % (classes[int(cls)], conf)
-                    list= plot_one_box(xyxy, im0, label=label, color=colors[int(cls)],list_1 = list_1,list_2 = list_2)
-            # print(list)
-        decision(list)
+                    print("label is %s"%label)
+                    list= plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
+            print(list)
         print('%sDone. (%.3fs)' % (s, time.time() - t))
         # Stream results
         if stream_img:
             cv2.imshow(weights, im0)
+            if cv2.waitKey(1) == 27:  # esc to quit
+                cv2.destroyAllWindows()
+                break
     print('Done. (%.3fs)' % (time.time() - t0))
 
 
 if __name__ == '__main__':
-    mSerial = SerialPort(serialPort, baudRate)
-    t1 = threading.Thread(target=mSerial.read_data)
-    t1.start()
-    t2 = threading.Thread(target=mSerial.set_speed)
-    t2.start()
+    if test_mode is not True:
+        mSerial = SerialPort(serialPort, baudRate)
+        t1 = threading.Thread(target=mSerial.read_data)
+        t1.start()
+        t2 = threading.Thread(target=mSerial.set_speed)
+        t2.start()
     with torch.no_grad():
         detect()
