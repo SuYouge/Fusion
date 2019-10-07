@@ -26,6 +26,9 @@ global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
 
+wander_mode = 0
+wander_cnt = 0
+
 # global_dist_thresh = 200
 
 
@@ -50,6 +53,14 @@ shape of list
            [0, [0, 0], [0, 0], 0]] ball
 list cache
 '''
+
+
+def set_front(str,mode):
+    if (mode == 1):
+        output = "\033[1;31m" + str + "\033[0m"
+    elif (mode == 2):
+        output = "\033[1;32m" + str + "\033[0m"
+    return output
 
 
 # limited speed
@@ -138,11 +149,48 @@ def mode_test():
             print("incenter")
             if(global_dist>500):
                 set_speed(0, 100, 0)
-                print("approaching %s"%global_dist)
+                # print("approaching %s"%global_dist)
+                print(set_front(("approaching %s" % global_dist),1))
             # else:
                 # check
-        print("\033[1;31;47mFound\033[0m")
+        print(set_front("Found",1))
     # print(center)
+
+
+def wander_delay(time):
+    global wander_cnt
+    global wander_mode
+    wander_cnt += 1
+    if (time != 0):
+        if (wander_cnt >= time):
+            wander_cnt = 0
+            wander_mode = random.choices([0, 1, 2], [10, 10, 80])[0]
+    elif(time == 0):
+        wander_cnt = 0
+        wander_mode = 2
+
+
+def wander():
+    global wander_mode
+    global wander_cnt
+    if (global_dist<300):
+        set_speed(0, 0, 200)
+        wander_delay(0)
+        print(set_front(("too close %s" % global_dist), 2))
+    else:
+        if(wander_mode == 0):
+            set_speed(0, 0, 200)
+            print(set_front("turn left",1))
+            wander_delay(5)
+        elif(wander_mode == 1):
+            set_speed(0, 0, -200)
+            print(set_front("turn right", 1))
+            wander_delay(5)
+        elif (wander_mode == 2):
+            set_speed(0, 300, 0)
+            print(set_front("forward", 1))
+            wander_delay(15)
+        print(set_front(("mode is in %s"%wander_mode), 2))
 
 
 def cal_ave():
@@ -171,6 +219,7 @@ def cal_ave():
         pass
     return center
 
+
 def inqueue(box):
     global cache_box
     if len(cache_box)<= cache_size-1:
@@ -194,8 +243,8 @@ def quit_process():
     global_speedy = 0
     global_speedr = 0
 
+
 def detect(save_img=False, stream_img=False):
-    count = 0
     img_size = 416
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     # Initialize
@@ -264,7 +313,8 @@ def detect(save_img=False, stream_img=False):
         #############################################
         if test_mode is not True:
             mSerial.get_dist()
-            mode_test()
+            # mode_test()
+            wander()
         #############################################
         print('%sDone. (%.3fs)' % (s, time.time() - t))
         # Stream results
