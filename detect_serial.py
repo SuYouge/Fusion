@@ -3,6 +3,7 @@ import serial
 import struct
 import threading
 import random
+
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
@@ -15,7 +16,7 @@ source = '0'
 cfg = 'cfg/yolov3-tiny-2cls.cfg'
 data = 'data/ball.data'
 conf_thres = 0.8
-nms_thres = 0.2
+nms_thres = 0
 
 cache_box = []
 cache_size = 3
@@ -24,19 +25,15 @@ global_dist = 0
 global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
-global_decpos = [[0,0,0,0],[0,0,0,0]] # [obj1[p_upleft,p_downright], obj2[p_upleft,p_downright]]
-global_imgsize = [0,0] # [width,height]
 
-global_dist_thresh = 200
+# global_dist_thresh = 200
 
-mode = ['init','init']
-# mode_list = ['init','wander', 'follow', 'find', 'attack', 'rehearsal']
 
 # /dev/ttyUSB0 for ubuntu
-serialPort = "COM14"  # serial no
+serialPort = "COM14"  # serial no /dev/ttyUSB0
 baudRate = 9600  # Baudrate
 
-test_mode = True
+test_mode = False
 # list = [[0, [0, 0], [0, 0], 0], \
 #         [0, [0, 0], [0, 0], 0]]
 '''
@@ -56,14 +53,14 @@ list cache
 
 
 # limited speed
-def suppress(speed):
-    if (speed>1000):
-        speed = 1000
-    elif(speed<-1000):
-        speed = -1000
+def suppress(speed,target_speed):
+    if (speed>target_speed):
+        speed = target_speed
+    elif(speed<-target_speed):
+        speed = -target_speed
     # x = speed
     # speed = 1 / (1 + np.exp(-x))
-    return speed
+    return int(speed)
 
 
 # serial port operation
@@ -101,7 +98,7 @@ class SerialPort:
             # self.n+=1
             self.package = struct.pack('<3s3hs', b'\xff\xfe\x01', global_speedx, global_speedy,global_speedr, b'\x00')
             n = self.port.write(self.package)
-            print("speedx = %s, speedy = %s, speedr = %s \n"%(global_speedx,global_speedy,global_speedr))
+            # print("speedx = %s, speedy = %s, speedr = %s \n"%(global_speedx,global_speedy,global_speedr))
         # return n
 
     def read_data(self):
@@ -115,136 +112,37 @@ class SerialPort:
             # print(self.message)
 
 
-# make decision
-def decision(list = None):
-    # calculate decision FSM value
-    global global_dist
-    global mode
-    # print(list, global_dist)
-    #  FSM
-    if (mode[0] == 'init'):
-        rod = random.randint(0, 9)
-        if (rod<=4):
-            mode[1] = 'wander'
-            execute(list)
-        elif (rod>4):
-            mode[1] = 'find'
-            execute(list)
-    elif (mode[0] == 'find'):
-        if ():
-            mode[1] = 'attack'
-            execute(list)
-        elif ():
-            mode[1] = 'follow'
-            execute(list)
-        elif ():
-            mode[1] = 'wander'
-            execute(list)
-    elif (mode[0] == 'follow'):
-        if ():
-            mode[1] = 'attack'
-            execute(list)
-        elif ():
-            mode[1] = 'find'
-            execute(list)
-        elif ():
-            mode[1] = 'wander'
-            execute(list)
-    elif (mode[0] == 'wander'):
-        if ():
-            mode[1] = 'attack'
-            execute()
-        elif ():
-            mode[1] = 'follow'
-            execute(list)
-    elif (mode[0] == 'attack'):
-        if ():
-            mode[1] = 'find'
-        elif():
-            mode[1] = 'follow'
-    else:
-        mode[1] = mode[0]
-        execute(list)
-
-
-def execute(list = None):
-    # define a decision filter(list[]) for every detection
-    global mode
-    global global_dist
+def set_speed(x=0,y=0,r=0):
     global global_speedx
     global global_speedy
     global global_speedr
-    global global_decpos
-    global global_imgsize
+    global_speedx = x
+    global_speedy = y
+    global_speedr = r
 
-    if (mode[1] == 'init'):
-        global_speedx = 0
-        global_speedy = 0
-        global_speedr = 0
-        # update cache target
-    elif(mode[1] == 'wander'):
-        rander = random.randint(0, 8)
-        if (global_dist>global_dist_thresh):
-            if (rander<=2):
-                global_speedx = 0
-                global_speedy = 500
-                global_speedr = 0
-            elif (rander>2 & rander <=5):
-                global_speedx = 0
-                global_speedy = 300
-                global_speedr = 100
-            else:
-                global_speedx = 0
-                global_speedy = 300
-                global_speedr = -100
-        elif (global_dist<global_dist_thresh):
-            global_speedx = 0
-            global_speedy = -500
-            global_speedr = 0
-        # update cache target
-    elif (mode[1] == 'follow'):
-        if (global_dist<global_dist_thresh):
-            kr = 0.5
-            global_speedx = 200
-            global_speedy = 0
-            global_speedr = suppress((global_imgsize[0] - (global_decpos[0][0] + global_decpos[0][2]) / 2) * kr)
-        else:
-            kr = 0.25
-            global_speedx = -200
-            global_speedy = 0
-            global_speedr = suppress((global_imgsize[0] - (global_decpos[0][0] + global_decpos[0][2]) / 2) * kr)
-        # update cache target
-    elif (mode[1] == 'find'):
-        if (): # balloon disappear from left
-            global_speedr = 500 # define speedr based on test
-        elif (): #balloon disappear from right
-            global_speedr = -500
-        # update cache target
-    elif (mode[1] == 'attack'):
-        if (global_dist>=80):
-            global_speedx = 0
-            global_speedy = 700
-            global_speedr = 0
-        # update cache target
-    elif (mode[1] == 'rehearsal'):
-        global_speedx = 0
-        global_speedy = 0
-        global_speedr = 0
-
-    print('executed state is %s, previous state is %s\n speed=(%s,%s,%s) dist =%s\n'\
-          %(mode[1],mode[0],global_speedx,global_speedy,global_speedr,global_dist))
-    mode[0] = mode[1]
 
 def mode_test():
-    # print("is %s" % cache_box)
+    # Finding mode
     center = cal_ave()
-    if center[0] is not(0,0):
-        global_speedr = 100
-    else:
-        global_speedr = 0
+    if (center[0] == (0,0)):
+        set_speed(0, 0, 100)
         print("finding\n")
-    print(center)
-    pass
+    else:
+        if (center[0][0]<0.25 or center[0][0]>0.75):
+            centering_speed = (center[0][0]-0.5)*200
+            print("centering speed %s"%centering_speed)
+            set_speed(0, 0, suppress(centering_speed, 100))
+            print("centering")
+        elif(0.25<=center[0][0]<=0.75):
+            set_speed(0, 0, 0)
+            print("incenter")
+            if(global_dist>500):
+                set_speed(0, 100, 0)
+                print("approaching %s"%global_dist)
+            # else:
+                # check
+        print("\033[1;31;47mFound\033[0m")
+    # print(center)
 
 
 def cal_ave():
@@ -287,6 +185,15 @@ def inqueue(box):
     # ave_box = cal_average(cache_box)
     # print("is %s"%cache_box)
 
+
+def quit_process():
+    global global_speedx
+    global global_speedy
+    global global_speedr
+    global_speedx = 0
+    global_speedy = 0
+    global_speedr = 0
+
 def detect(save_img=False, stream_img=False):
     count = 0
     img_size = 416
@@ -327,7 +234,6 @@ def detect(save_img=False, stream_img=False):
     t0 = time.time()
     for path, img, im0, vid_cap in dataset:
         t = time.time()
-        count = count + 1
         img = torch.from_numpy(img).unsqueeze(0).to(device)
         pred, _ = model(img)
         # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
@@ -354,11 +260,11 @@ def detect(save_img=False, stream_img=False):
                     [0, [0, 0], [0, 0], 0]]
         #####################TEMP####################
         inqueue(list)
-        mode_test()
+        # mode_test()
         #############################################
         if test_mode is not True:
             mSerial.get_dist()
-            # mode_test()
+            mode_test()
         #############################################
         print('%sDone. (%.3fs)' % (s, time.time() - t))
         # Stream results
@@ -367,6 +273,7 @@ def detect(save_img=False, stream_img=False):
             if cv2.waitKey(1) == 27:  # esc to quit
                 cv2.destroyAllWindows()
                 break
+    quit_process()
     print('Done. (%.3fs)' % (time.time() - t0))
 
 
