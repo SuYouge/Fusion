@@ -16,11 +16,14 @@
       <file leaf-file-name="detect_serial.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/detect_serial.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="146">
-              <caret line="173" column="25" lean-forward="true" selection-start-line="173" selection-start-column="25" selection-end-line="173" selection-end-column="25" />
+            <state relative-caret-position="29">
+              <caret line="174" column="20" lean-forward="true" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
+                <element signature="e#1317#1504#0" />
                 <element signature="e#1504#3013#0" />
+                <element signature="e#6834#6970#0" />
+                <element signature="e#4363#5001#0" />
                 <element signature="e#6700#7510#0" />
                 <element signature="e#7534#7943#0" />
                 <element signature="e#8437#8573#0" />
@@ -302,7 +305,10 @@
           <caret line="356" column="24" lean-forward="true" selection-start-line="356" selection-start-column="24" selection-end-line="356" selection-end-column="24" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
+            <element signature="e#1317#1504#0" />
             <element signature="e#1504#3013#0" />
+            <element signature="e#6834#6970#0" />
+            <element signature="e#4363#5001#0" />
             <element signature="e#6700#7510#0" />
             <element signature="e#7534#7943#0" />
             <element signature="e#8437#8573#0" />
@@ -419,11 +425,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="146">
-          <caret line="173" column="25" lean-forward="true" selection-start-line="173" selection-start-column="25" selection-end-line="173" selection-end-column="25" />
+        <state relative-caret-position="29">
+          <caret line="174" column="20" lean-forward="true" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
+            <element signature="e#1317#1504#0" />
             <element signature="e#1504#3013#0" />
+            <element signature="e#6834#6970#0" />
+            <element signature="e#4363#5001#0" />
             <element signature="e#6700#7510#0" />
             <element signature="e#7534#7943#0" />
             <element signature="e#8437#8573#0" />

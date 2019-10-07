@@ -19,7 +19,7 @@ conf_thres = 0.8
 nms_thres = 0
 
 cache_box = []
-cache_size = 3
+cache_size = 5
 
 global_dist = 0
 global_speedx = 0
@@ -28,7 +28,8 @@ global_speedr = 0 # if speedr >0 turn left else turn right
 
 wander_mode = 0
 wander_cnt = 0
-
+shake_flag = 0
+shake_cnt = 0
 # global_dist_thresh = 200
 
 
@@ -60,6 +61,8 @@ def set_front(str,mode):
         output = "\033[1;31m" + str + "\033[0m"
     elif (mode == 2):
         output = "\033[1;32m" + str + "\033[0m"
+    elif (mode == 3):
+        output = "\033[1;34m" + str + "\033[0m"
     return output
 
 
@@ -132,31 +135,54 @@ def set_speed(x=0,y=0,r=0):
     global_speedr = r
 
 
+def shake(times):
+    global shake_cnt
+    global shake_flag
+    if (times != 0):
+        if (shake_cnt <= times):
+            set_speed(0, 0, 500)
+            shake_cnt += 1
+        elif(times<=shake_cnt <= 2*times):
+            set_speed(0, 0, -500)
+            shake_cnt += 1
+        else:
+            shake_cnt = 0
+            shake_flag = 0
+        print(set_front("shaking",3))
+    pass
+
+# Finding mode
 def mode_test():
+    global shake_flag
     # Finding mode
     center = cal_ave()
-    if (center[0] == (0,0)):
+    if ((center[0] == (0,0)) and (shake_flag != 1)):
         set_speed(0, 0, 100)
         print("finding\n")
+        # if target was found , but lost check found_flag
+    elif(shake_flag == 1):
+        shake(1)
+        shake_flag = 0
     else:
-        if (center[0][0]<0.25 or center[0][0]>0.75):
+        if (center[0][0]<0.35 or center[0][0]>0.65):
             centering_speed = (center[0][0]-0.5)*200
             print("centering speed %s"%centering_speed)
             set_speed(0, 0, suppress(centering_speed, 100))
             print("centering")
-        elif(0.25<=center[0][0]<=0.75):
-            set_speed(0, 0, 0)
+        elif(0.35<=center[0][0]<=0.65):
+            # set_speed(0, 0, 0)
             print("incenter")
             if(global_dist>500):
-                set_speed(0, 100, 0)
+                set_speed(0, 200, 0)
                 # print("approaching %s"%global_dist)
                 print(set_front(("approaching %s" % global_dist),1))
-            # else:
                 # check
+            else:
+                shake_flag = 1
         print(set_front("Found",1))
     # print(center)
 
-
+# Wander mode
 def wander_delay(time):
     global wander_cnt
     global wander_mode
@@ -313,8 +339,8 @@ def detect(save_img=False, stream_img=False):
         #############################################
         if test_mode is not True:
             mSerial.get_dist()
-            # mode_test()
-            wander()
+            mode_test()
+            # wander()
         #############################################
         print('%sDone. (%.3fs)' % (s, time.time() - t))
         # Stream results
