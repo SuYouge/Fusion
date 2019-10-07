@@ -26,6 +26,8 @@ global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
 
+diappear_flag = 0
+
 wander_mode = 0
 wander_cnt = 0
 shake_flag = 0
@@ -157,8 +159,8 @@ def mode_test():
     # Finding mode
     center = cal_ave()
     if ((center[0] == (0,0)) and (shake_flag != 1)):
-        set_speed(0, 0, 100)
-        print("finding\n")
+        set_speed(0, 0, diappear_flag*200)
+        print("finding in %s\n"%diappear_flag)
         # if target was found , but lost check found_flag
     elif(shake_flag == 1):
         shake(1)
@@ -221,6 +223,7 @@ def wander():
 
 def cal_ave():
     global cache_box
+    global diappear_flag
     x1,y1 = 0,0
     x2,y2 = 0,0
     p = 0
@@ -239,6 +242,10 @@ def cal_ave():
                 # print("cache box i is %s" % cache_box[i][0][3])
                 cnt = cnt + 1
                 center = [((x1/cnt+x2/cnt)/2,(y1/cnt+y2/cnt)/2),p/cnt]
+                if (center[0][0]<=0.5):
+                    diappear_flag = -1
+                elif(center[0][0]>0.5):
+                    diappear_flag = 1
         else:
             pass
     else:

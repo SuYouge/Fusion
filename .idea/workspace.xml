@@ -16,15 +16,14 @@
       <file leaf-file-name="detect_serial.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/detect_serial.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="29">
-              <caret line="174" column="20" lean-forward="true" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
+            <state relative-caret-position="117">
+              <caret line="159" column="22" lean-forward="true" selection-start-line="159" selection-start-column="22" selection-end-line="159" selection-end-column="22" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
                 <element signature="e#1317#1504#0" />
                 <element signature="e#1504#3013#0" />
                 <element signature="e#6834#6970#0" />
                 <element signature="e#4363#5001#0" />
-                <element signature="e#6700#7510#0" />
                 <element signature="e#7534#7943#0" />
                 <element signature="e#8437#8573#0" />
               </folding>
@@ -309,7 +308,6 @@
             <element signature="e#1504#3013#0" />
             <element signature="e#6834#6970#0" />
             <element signature="e#4363#5001#0" />
-            <element signature="e#6700#7510#0" />
             <element signature="e#7534#7943#0" />
             <element signature="e#8437#8573#0" />
           </folding>
@@ -425,15 +423,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/detect_serial.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="29">
-          <caret line="174" column="20" lean-forward="true" selection-start-line="174" selection-start-column="20" selection-end-line="174" selection-end-column="20" />
+        <state relative-caret-position="117">
+          <caret line="159" column="22" lean-forward="true" selection-start-line="159" selection-start-column="22" selection-end-line="159" selection-end-column="22" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
             <element signature="e#1317#1504#0" />
             <element signature="e#1504#3013#0" />
             <element signature="e#6834#6970#0" />
             <element signature="e#4363#5001#0" />
-            <element signature="e#6700#7510#0" />
             <element signature="e#7534#7943#0" />
             <element signature="e#8437#8573#0" />
           </folding>
