@@ -35,7 +35,7 @@ shake_cnt = 0
 # global_dist_thresh = 200
 
 
-# /dev/ttyUSB0 for ubuntu
+# serialPort = /dev/ttyUSB0 #for ubuntu
 serialPort = "COM14"  # serial no /dev/ttyUSB0
 baudRate = 9600  # Baudrate
 
@@ -45,8 +45,7 @@ test_mode = False
 '''
 wander : avoid barrel and looking for target
 follow : focus on target and keep distance
-find   : find target
-attack : approach to target 
+find   : find target,approach to target 
 rehearsal : undefined
 '''
 
@@ -153,6 +152,7 @@ def shake(times):
         print(set_front("shaking",3))
     pass
 
+
 # Finding mode
 def mode_test():
     global shake_flag
@@ -167,15 +167,16 @@ def mode_test():
         shake_flag = 0
     else:
         if (center[0][0]<0.35 or center[0][0]>0.65):
-            centering_speed = (center[0][0]-0.5)*200
+            centering_speed = (center[0][0]-0.5)*300
             print("centering speed %s"%centering_speed)
-            set_speed(0, 0, suppress(centering_speed, 100))
+            set_speed(0, 0, suppress(centering_speed, 200))
             print("centering")
         elif(0.35<=center[0][0]<=0.65):
             # set_speed(0, 0, 0)
             print("incenter")
             if(global_dist>500):
-                set_speed(0, 200, 0)
+                centering_speed = (center[0][0] - 0.5) * 50
+                set_speed(0, 200, suppress(centering_speed, 50))
                 # print("approaching %s"%global_dist)
                 print(set_front(("approaching %s" % global_dist),1))
                 # check
@@ -183,6 +184,7 @@ def mode_test():
                 shake_flag = 1
         print(set_front("Found",1))
     # print(center)
+
 
 # Wander mode
 def wander_delay(time):
@@ -321,7 +323,6 @@ def detect(save_img=False, stream_img=False):
         # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
         det = non_max_suppression(pred.float(), conf_thres, nms_thres)[0]
         s = '%gx%g ' % img.shape[2:]  # print string
-
         if det is not None and len(det):
             # Rescale boxes from img_size to im0 size
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -335,15 +336,14 @@ def detect(save_img=False, stream_img=False):
                 if save_img or stream_img:  # Add bbox to image
                     label = '%s %.2f' % (classes[int(cls)], conf)
                     # print("label is %s"%label)
-                    list= plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
+                    list,box = plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
+                    cv2.imshow("box",box)
             # print(list)
         else:
             list = [[0, [0, 0], [0, 0], 0], \
                     [0, [0, 0], [0, 0], 0]]
         #####################TEMP####################
         inqueue(list)
-        # mode_test()
-        #############################################
         if test_mode is not True:
             mSerial.get_dist()
             mode_test()

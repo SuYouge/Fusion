@@ -697,7 +697,7 @@ def fitness(x):
 
 
 # Plotting functions ---------------------------------------------------------------------------------------------------
-def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
+def plot_one_box(x, img, color=None, label=None, line_thickness=None):
     list_1 = [0, [0, 0], [0, 0], 0]
     list_2 = [0, [0, 0], [0, 0], 0]
     # Plots one bounding box on image img
@@ -706,6 +706,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
     # x=(0,0,img.shape[1],img.shape[0])
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
     cv2.rectangle(img, c1, c2, color, thickness=tl)
+    box = img[c1[1]:c2[1],c1[0]:c2[0]]
     ###
     list = [list_1,list_2]
     name_list = ['balloon','ball']
@@ -715,6 +716,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
         t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
         c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
         cv2.rectangle(img, c1, c2, color, -1)  # filled
+        # box =
         cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
         ###
         name = ''.join(re.findall(r'[A-Za-z]', label))
@@ -727,7 +729,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None ):
         list[name_list.index(name)][3] = float(posbility)
         # print("label is %s"%label)
         ###
-    return list ###
+    return list,box###
 
 def plot_wh_methods():  # from utils.utils import *; plot_wh_methods()
     # Compares the two methods for width-height anchor multiplication
