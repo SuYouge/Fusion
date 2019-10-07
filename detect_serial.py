@@ -238,6 +238,11 @@ def execute(list = None):
 def mode_test():
     # print("is %s" % cache_box)
     center = cal_ave()
+    if center[0] is not(0,0):
+        global_speedr = 100
+    else:
+        global_speedr = 0
+        print("finding\n")
     print(center)
     pass
 
@@ -283,6 +288,7 @@ def inqueue(box):
     # print("is %s"%cache_box)
 
 def detect(save_img=False, stream_img=False):
+    count = 0
     img_size = 416
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     # Initialize
@@ -321,6 +327,7 @@ def detect(save_img=False, stream_img=False):
     t0 = time.time()
     for path, img, im0, vid_cap in dataset:
         t = time.time()
+        count = count + 1
         img = torch.from_numpy(img).unsqueeze(0).to(device)
         pred, _ = model(img)
         # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
