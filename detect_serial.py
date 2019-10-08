@@ -3,6 +3,7 @@ import serial
 import struct
 import threading
 import post_process
+import config
 import random
 
 from models import *  # set ONNX_EXPORT in models.py
@@ -10,14 +11,6 @@ from utils.datasets import *
 from utils.utils import *
 
 img_size = 416
-out = 'output'
-weights = 'weights/best.pt'
-# half = True
-source = '0'
-cfg = 'cfg/yolov3-tiny-2cls.cfg'
-data = 'data/ball.data'
-conf_thres = 0.9
-nms_thres = 0
 
 cache_box = []
 cache_size = 5
@@ -36,11 +29,7 @@ shake_cnt = 0
 # global_dist_thresh = 200
 temp_cache = []
 
-# serialPort = /dev/ttyUSB0 #for ubuntu
-serialPort = "COM14"  # serial no /dev/ttyUSB0
-baudRate = 9600  # Baudrate
 
-test_mode = True
 # list = [[0, [0, 0], [0, 0], 0], \
 #         [0, [0, 0], [0, 0], 0]]
 '''
@@ -285,20 +274,20 @@ def detect(save_img=False, stream_img=False):
     global cache_box
     det_cnt = 0
     img_size = 416
-    webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
+    webcam = config.source == '0' or config.source.startswith('rtsp') or config.source.startswith('http')
     # Initialize
     device = torch_utils.select_device(force_cpu=ONNX_EXPORT)
     torch.backends.cudnn.benchmark = True  # set True to speed up constant image size inference
-    if os.path.exists(out):
-        shutil.rmtree(out)  # delete output folder
-    os.makedirs(out)  # make new output folder
+    if os.path.exists(config.out):
+        shutil.rmtree(config.out)  # delete output folder
+    os.makedirs(config.out)  # make new output folder
     # Initialize model
-    model = Darknet(cfg, img_size)
+    model = Darknet(config.cfg, img_size)
     # Load weights
-    if weights.endswith('.pt'):  # pytorch format
-        model.load_state_dict(torch.load(weights, map_location=device)['model'])
+    if config.weights.endswith('.pt'):  # pytorch format
+        model.load_state_dict(torch.load(config.weights, map_location=device)['model'])
     else:  # darknet format
-        _ = load_darknet_weights(model, weights)
+        _ = load_darknet_weights(model, config.weights)
 
     # Eval mode
     model.to(device).eval()
@@ -311,12 +300,12 @@ def detect(save_img=False, stream_img=False):
     # Set Dataloader
     if webcam:
         stream_img = True
-        dataset = LoadWebcam(source, img_size=img_size, half=half)
+        dataset = LoadWebcam(config.source, img_size=img_size, half=half)
     else:
         save_img = True
-        dataset = LoadImages(source, img_size=img_size, half=half)
+        dataset = LoadImages(config.source, img_size=img_size, half=half)
     # Get classes and colors
-    classes = load_classes(parse_data_cfg(data)['names'])
+    classes = load_classes(parse_data_cfg(config.data)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
     # Run inference
     t0 = time.time()
@@ -330,7 +319,7 @@ def detect(save_img=False, stream_img=False):
         if (len(temp_cache) == 0 or det_cnt%3 == 0):
             pred, _ = model(img)
             # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
-            det = non_max_suppression(pred.float(), conf_thres, nms_thres)[0]
+            det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
             s = '%gx%g ' % img.shape[2:]  # print string
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
@@ -365,7 +354,7 @@ def detect(save_img=False, stream_img=False):
         inqueue(list)
         #####################TEMP####################
         # inqueue(list)
-        if test_mode is not True:
+        if config.test_mode is not True:
             mSerial.get_dist()
             mode_test()
             # wander()
@@ -376,7 +365,7 @@ def detect(save_img=False, stream_img=False):
             tl = round(0.002 * (im0.shape[0] + im0.shape[1]) / 2) + 1
             cv2.rectangle(im0, (int(cache_box[0][0][1][0]*im0.shape[1]),int(cache_box[0][0][1][1]*im0.shape[0])),
                           (int(cache_box[0][0][2][0]*im0.shape[1]),int(cache_box[0][0][2][1]*im0.shape[0])), (0,0,255), tl)
-            cv2.imshow(weights, im0)
+            cv2.imshow(config.weights, im0)
             if cv2.waitKey(1) == 27:  # esc to quit
                 cv2.destroyAllWindows()
                 break
@@ -385,8 +374,8 @@ def detect(save_img=False, stream_img=False):
 
 
 if __name__ == '__main__':
-    if test_mode is not True:
-        mSerial = SerialPort(serialPort, baudRate)
+    if config.test_mode is not True:
+        mSerial = SerialPort(config.serialPort, config.baudRate)
         t1 = threading.Thread(target=mSerial.read_data)
         t1.start()
         t2 = threading.Thread(target=mSerial.set_speed)
