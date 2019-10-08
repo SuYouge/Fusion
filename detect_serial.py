@@ -2,6 +2,7 @@ import time
 import serial
 import struct
 import threading
+import post_process
 import random
 
 from models import *  # set ONNX_EXPORT in models.py
@@ -15,7 +16,7 @@ weights = 'weights/best.pt'
 source = '0'
 cfg = 'cfg/yolov3-tiny-2cls.cfg'
 data = 'data/ball.data'
-conf_thres = 0.8
+conf_thres = 0.9
 nms_thres = 0
 
 cache_box = []
@@ -26,7 +27,7 @@ global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
 
-diappear_flag = 0
+diappear_flag = -1
 
 wander_mode = 0
 wander_cnt = 0
@@ -39,7 +40,7 @@ shake_cnt = 0
 serialPort = "COM14"  # serial no /dev/ttyUSB0
 baudRate = 9600  # Baudrate
 
-test_mode = False
+test_mode = True
 # list = [[0, [0, 0], [0, 0], 0], \
 #         [0, [0, 0], [0, 0], 0]]
 '''
@@ -159,7 +160,7 @@ def mode_test():
     # Finding mode
     center = cal_ave()
     if ((center[0] == (0,0)) and (shake_flag != 1)):
-        set_speed(0, 0, diappear_flag*200)
+        set_speed(0, 0, diappear_flag*300)
         print("finding in %s\n"%diappear_flag)
         # if target was found , but lost check found_flag
     elif(shake_flag == 1):
@@ -337,13 +338,20 @@ def detect(save_img=False, stream_img=False):
                     label = '%s %.2f' % (classes[int(cls)], conf)
                     # print("label is %s"%label)
                     list,box = plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
-                    cv2.imshow("box",box)
+                    if (classes[int(cls)] == 'balloon'):
+                        cntm, color = post_process.get_color(box)
+                        if(cntm is not None):
+                            print("cnt ok and color is %s" %color)
+                            box = cv2.drawContours(box,cntm,-1,(0,0,255),3)
+                            cv2.imshow("box", box)
+                            inqueue(list)
             # print(list)
         else:
             list = [[0, [0, 0], [0, 0], 0], \
                     [0, [0, 0], [0, 0], 0]]
+            inqueue(list)
         #####################TEMP####################
-        inqueue(list)
+        # inqueue(list)
         if test_mode is not True:
             mSerial.get_dist()
             mode_test()

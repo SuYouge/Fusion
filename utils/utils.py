@@ -706,10 +706,11 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None):
     # x=(0,0,img.shape[1],img.shape[0])
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
     cv2.rectangle(img, c1, c2, color, thickness=tl)
-    box = img[c1[1]:c2[1],c1[0]:c2[0]]
     ###
     list = [list_1,list_2]
     name_list = ['balloon','ball']
+    box = img[c1[1]+tl:c2[1]-tl, c1[0]+tl:c2[0]-tl]
+    # box = np.zeros([100, 100, 3], np.uint8)
     ###
     if label:
         tf = max(tl - 1, 1)  # font thickness
