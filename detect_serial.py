@@ -34,7 +34,7 @@ wander_cnt = 0
 shake_flag = 0
 shake_cnt = 0
 # global_dist_thresh = 200
-
+temp_cache = []
 
 # serialPort = /dev/ttyUSB0 #for ubuntu
 serialPort = "COM14"  # serial no /dev/ttyUSB0
@@ -263,12 +263,12 @@ def inqueue(box):
     elif len(cache_box) > cache_size-1:
         # print(">3")
         cache_box.append(box)
-        for i in range(1):  ##左移
+        for i in range(1):  #左移
             cache_box.insert(len(cache_box), cache_box[0])
             cache_box.remove(cache_box[0])
             cache_box.pop()
     # ave_box = cal_average(cache_box)
-    # print("is %s"%cache_box)
+    print("is %s"%cache_box)
 
 
 def quit_process():
@@ -281,6 +281,9 @@ def quit_process():
 
 
 def detect(save_img=False, stream_img=False):
+    global temp_cache
+    global cache_box
+    det_cnt = 0
     img_size = 416
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http')
     # Initialize
@@ -320,36 +323,46 @@ def detect(save_img=False, stream_img=False):
     for path, img, im0, vid_cap in dataset:
         t = time.time()
         img = torch.from_numpy(img).unsqueeze(0).to(device)
-        pred, _ = model(img)
-        # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
-        det = non_max_suppression(pred.float(), conf_thres, nms_thres)[0]
-        s = '%gx%g ' % img.shape[2:]  # print string
-        if det is not None and len(det):
-            # Rescale boxes from img_size to im0 size
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-            # print(det[:, :4])
-            # Print results
-            for c in det[:, -1].unique():
-                n = (det[:, -1] == c).sum()  # detections per class
-                s += '%g %ss, ' % (n, classes[int(c)])  # add to string
-            # Write results
-            for *xyxy, conf, _, cls in det:
-                if save_img or stream_img:  # Add bbox to image
-                    label = '%s %.2f' % (classes[int(cls)], conf)
-                    # print("label is %s"%label)
-                    list,box = plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
-                    if (classes[int(cls)] == 'balloon'):
-                        cntm, color = post_process.get_color(box)
-                        if(cntm is not None):
-                            print("cnt ok and color is %s" %color)
-                            box = cv2.drawContours(box,cntm,-1,(0,0,255),3)
-                            cv2.imshow("box", box)
-                            inqueue(list)
-            # print(list)
-        else:
-            list = [[0, [0, 0], [0, 0], 0], \
-                    [0, [0, 0], [0, 0], 0]]
-            inqueue(list)
+        cv2.imshow("origin", im0)
+        det_cnt += 1
+        list = [[0, [0, 0], [0, 0], 0], \
+                [0, [0, 0], [0, 0], 0]]
+        if (len(temp_cache) == 0 or det_cnt%3 == 0):
+            pred, _ = model(img)
+            # non_max_suppression (x1, y1, x2, y2, object_conf, class_conf, class)
+            det = non_max_suppression(pred.float(), conf_thres, nms_thres)[0]
+            s = '%gx%g ' % img.shape[2:]  # print string
+            if det is not None and len(det):
+                # Rescale boxes from img_size to im0 size
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                # print(det[:, :4])
+                # Print results
+                for c in det[:, -1].unique():
+                    n = (det[:, -1] == c).sum()  # detections per class
+                    s += '%g %ss, ' % (n, classes[int(c)])  # add to string
+                # Write results
+                for *xyxy, conf, _, cls in det:
+                    if save_img or stream_img:  # Add bbox to image
+                        label = '%s %.2f' % (classes[int(cls)], conf)
+                        # print("label is %s"%label)
+                        list,box = plot_one_box(xyxy, im0, label=label, color=colors[int(cls)])
+                        if (classes[int(cls)] == 'balloon'):
+                            cntm, color = post_process.get_color(box)
+                            if(cntm is not None):
+                                print("cnt ok and color is %s" %color)
+                                match = post_process.match_img(im0,box,0.8)
+                                temp_cache = box
+                                # box = cv2.drawContours(box,cntm,-1,(0,0,255),3)
+                                # cv2.imshow("box", box)
+        elif(len(temp_cache) > 0):
+            match,c1,c2 = post_process.match_img(im0, temp_cache, 0.75)
+            c1n, c2n = ((floatn(c1[0] / im0.shape[1]), floatn(c1[1] / im0.shape[0])),
+                        (floatn(c2[0] / im0.shape[1]), floatn(c2[1] / im0.shape[0])))
+            if (match != 0):
+                print("matching")
+                list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.9], \
+                        [0, [0, 0], [0, 0], 0]]
+        inqueue(list)
         #####################TEMP####################
         # inqueue(list)
         if test_mode is not True:
@@ -360,6 +373,9 @@ def detect(save_img=False, stream_img=False):
         print('%sDone. (%.3fs)' % (s, time.time() - t))
         # Stream results
         if stream_img:
+            tl = round(0.002 * (im0.shape[0] + im0.shape[1]) / 2) + 1
+            cv2.rectangle(im0, (int(cache_box[0][0][1][0]*im0.shape[1]),int(cache_box[0][0][1][1]*im0.shape[0])),
+                          (int(cache_box[0][0][2][0]*im0.shape[1]),int(cache_box[0][0][2][1]*im0.shape[0])), (0,0,255), tl)
             cv2.imshow(weights, im0)
             if cv2.waitKey(1) == 27:  # esc to quit
                 cv2.destroyAllWindows()

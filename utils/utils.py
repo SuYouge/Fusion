@@ -705,7 +705,7 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=None):
     color = color or [random.randint(0, 255) for _ in range(3)]
     # x=(0,0,img.shape[1],img.shape[0])
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
-    cv2.rectangle(img, c1, c2, color, thickness=tl)
+    # cv2.rectangle(img, c1, c2, color, thickness=tl)
     ###
     list = [list_1,list_2]
     name_list = ['balloon','ball']
