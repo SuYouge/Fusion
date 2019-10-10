@@ -7,13 +7,13 @@ filename = 'car04.jpg'
 def getColorList():
     dict = collections.defaultdict(list)
 
-    # 黑色
-    lower_black = np.array([0, 0, 0])
-    upper_black = np.array([180, 255, 46])
-    color_list = []
-    color_list.append(lower_black)
-    color_list.append(upper_black)
-    dict['black'] = color_list
+    # # 黑色
+    # lower_black = np.array([0, 0, 0])
+    # upper_black = np.array([180, 255, 46])
+    # color_list = []
+    # color_list.append(lower_black)
+    # color_list.append(upper_black)
+    # dict['black'] = color_list
 
     # #灰色
     # lower_gray = np.array([0, 0, 46])
@@ -24,12 +24,12 @@ def getColorList():
     # dict['gray']=color_list
 
     # 白色
-    lower_white = np.array([0, 0, 221])
-    upper_white = np.array([180, 30, 255])
-    color_list = []
-    color_list.append(lower_white)
-    color_list.append(upper_white)
-    dict['white'] = color_list
+    # lower_white = np.array([0, 0, 221])
+    # upper_white = np.array([180, 30, 255])
+    # color_list = []
+    # color_list.append(lower_white)
+    # color_list.append(upper_white)
+    # dict['white'] = color_list
 
     # 红色
     lower_red = np.array([156, 43, 46])

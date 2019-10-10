@@ -5,7 +5,7 @@ cnt = 0
 cnt_limit = 500
 
 tracker_types = ['BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'GOTURN', 'MOSSE', 'CSRT']
-tracker_type = tracker_types[7]  # 7和4的方法比较好
+tracker_type = tracker_types[4]  # 7和4的方法比较好
 
 if __name__ == '__main__':
     video = cv2.VideoCapture(0)
