@@ -4,7 +4,6 @@ import collections
 filename = 'car04.jpg'
 
 
-
 def getColorList():
     dict = collections.defaultdict(list)
 
