@@ -7,6 +7,8 @@ import struct
 import re
 import config
 import threading
+import ctypes
+
 from models import *  # set ONNX_EXPORT in models.py
 from utils.datasets import *
 from utils.utils import *
@@ -15,8 +17,6 @@ global_dist = 0
 global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
-global_track_cnt = 500
-global_color = ''
 
 
 
@@ -46,20 +46,27 @@ def image_put(q):
         print('Successfully open Cam')
     else:
         print('Cam Open Failed')
-    while True:
-        q.put(cap.read()[1])
-        q.get() if q.qsize() > 1 else time.sleep(0.01)
+    try:
+        while True:
+            q.put(cap.read()[1])
+            q.get() if q.qsize() > 4 else time.sleep(0.01)
+    except Exception as e:
+        print(Exception, ": in image put ", e)
 
 
 def image_get(q, boxq, window_name):
     cv2.namedWindow(window_name, flags=cv2.WINDOW_FREERATIO)
-    while True:
-        frame = q.get()
-        if (boxq.qsize()>0):
-            box = boxq.get()
-            cv2.rectangle(frame,(box[0],box[1]),(box[2],box[3]),(255,0,0),1)
-        cv2.imshow(window_name, frame)
-        cv2.waitKey(1)
+    try:
+        while True:
+            frame = q.get()
+            if (boxq.qsize()>0):
+                box = boxq.get(block = False)
+                cv2.rectangle(frame,(box[0],box[1]),(box[2],box[3]),(255,0,0),1)
+            cv2.imshow(window_name, frame)
+            cv2.waitKey(1)
+    except Exception as e:
+        print(Exception, ": in image get ", e)
+
 
 
 def check_color(box,target_color):
@@ -74,12 +81,12 @@ def check_color(box,target_color):
             return 0
 
 
-def torch_recog_threading(imgq,boxq,initbox,device, model, classes, colors):
+def torch_recog_threading(imgq,boxq,initbox,device, model, classes, colors,color_queue,recondone_queue):
     try :
-        global global_color
         half = True and device.type != 'cpu'
         with torch.no_grad():
             while True:
+                # if ((recondone_queue.value != 1)):
                 im0 = imgq.get()
                 img = set_size(im0, half)
                 print("in recognition")
@@ -101,31 +108,35 @@ def torch_recog_threading(imgq,boxq,initbox,device, model, classes, colors):
                         # cache.put(list) # if get immediately no more list in cache
                         if (classes[int(cls)] == 'balloon'):
                             cntm, color = post_process.get_color(box)
+                            color_queue.value = bytes(color, encoding = "utf8")
+                            # print(color_queue.value)
                             if (cntm is not None):
-                                # print("cnt ok and color is %s" % color)
                                 match = post_process.match_img(im0, box, 0.8)
                         #         temp_cache = box
                         #         print("flag set")
                                 initbox.put(xyxy)
                                 initbox.get() if initbox.qsize() > 1 else time.sleep(0.01)
+                                # recondone_queue.value = 1
                                 boxq.put(xyxy)
                                 boxq.get() if boxq.qsize() > 1 else time.sleep(0.01)
                     #         # cv2.imshow("box", box)
-    except :
-        print("error in recognition")
+    except Exception as e:
+        print(Exception, ": in recognizing ", e)
 
 
-def tracking_thread(initbox,imq,boxq):
+def tracking_thread(initbox,imq,boxq,color_queue,track_cnt,recondone_queue):
     try:
-        global global_color
-        global global_track_cnt
         init_flag = 0
-        while True:
+        print("once")
+        while (imq.qsize()):
             im0 = imq.get()
-            global_track_cnt += 1
+            print("twice")
+            # if (recondone_queue.value == 1):
+            temp_cnt = track_cnt.value
+            track_cnt.value = temp_cnt + 1
             if (initbox.qsize() != 0):
-                init_box = initbox.get()
                 if (init_flag != 1):
+                    init_box = initbox.get(block = False)
                     # print("reinit")
                     tracker_obj = cv2.TrackerCSRT_create()
                     tracker_obj.init(im0, tuple(
@@ -137,16 +148,19 @@ def tracking_thread(initbox,imq,boxq):
                                   (255, 0, 0), 2, 1)
                     t1 = (int(tbox[0]), int(tbox[1]))
                     t2 = int(tbox[0] + tbox[2]), int(tbox[1] + tbox[3])
+                    global_color = str(color_queue.value, encoding="utf-8")
+                    # global_color = color_queue.Value
                     if global_color is not None:
                         color_check = check_color((im0[t1[1] + 2:t2[1] - 2, t1[0] + 2:t2[0] - 2]), global_color)
                     # print("color check result is %s" % color_check)
                     boxq.put((t1[0],t1[1],t2[0],t2[1]))
                     boxq.get() if boxq.qsize() > 1 else time.sleep(0.01)
-                if (global_track_cnt % 100 == 0 or color_check != 1):
+                if (track_cnt.value % 100 == 0 or color_check != 1):
                     init_flag = 0
-                    print("tracking %s"%global_track_cnt)
-    except:
-        print("error in tracking")
+                    # recondone_queue.value = 0
+                    print("tracking %s"%track_cnt)
+    except Exception as e:
+        print(Exception, ": in tracking ",e)
 
 
 class SerialPort:
@@ -234,37 +248,30 @@ def init_detect():
     return device,model,classes,colors
 
 
-def cache_box_check(q):
-    while True:
-        if (q.full) :
-            list = q.get()
-            print(list,q.qsize())
-        else:
-            print("list is not full")
 
 
 
 def run_single_camera():
     device, model, classes, colors = init_detect()
     mp.set_start_method(method='spawn')  # init
-    img_queue = mp.Queue(maxsize=3)
+    img_queue = mp.Queue(maxsize=5)
     initbox = mp.Queue(maxsize = 3)
     boxq = mp.Queue(maxsize=3)
 
 
-    color_queue = mp.Queue(maxsize=3)
+
     dist_queue = mp.Queue(maxsize=3)
-    track_cnt_queue = mp.Queue(maxsize=3)
-    recondone_queue = mp.Queue(maxsize=3)
+    # track_cnt_queue = mp.Queue(maxsize=3)
 
-
+    recondone_queue = mp.Value("d", 0)
+    track_cnt = mp.Value("d", 0)
+    color_queue = mp.Value(ctypes.c_char_p,b'white')
 
     processes = [mp.Process(target=image_put, args=(img_queue,)),
                  mp.Process(target=image_get, args=(img_queue, boxq, 'Cam0')),
                  mp.Process(target=torch_recog_threading,
-                            args=(img_queue, boxq, initbox, device, model, classes, colors)),
-                 mp.Process(target=tracking_thread, args=(initbox, img_queue, boxq)),
-                 mp.Process(target=tracking_thread, args=(initbox, img_queue, boxq))
+                            args=(img_queue, boxq, initbox, device, model, classes, colors,color_queue,recondone_queue,)),
+                 mp.Process(target=tracking_thread, args=(initbox, img_queue, boxq,color_queue,track_cnt,recondone_queue,))
                  ]
 
     [process.start() for process in processes]
