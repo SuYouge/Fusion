@@ -144,7 +144,7 @@ class LoadWebcam:  # for inference
         # pipe = "rtspsrc location=rtsp://root:root@192.168.0.91:554/axis-media/media.amp?videocodec=h264&resolution=3840x2160 protocols=GST_RTSP_LOWER_TRANS_TCP ! rtph264depay ! queue ! vaapih264dec ! videoconvert ! appsink"  # GStreamer
         
         self.pipe = pipe
-        self.cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
+        self.cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
         # self.cap = cv2.VideoCapture(pipe)  # video capture object
         # self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # set buffer size
 

@@ -22,18 +22,13 @@ def init_detect():
     torch.backends.cudnn.benchmark = True  # set True to speed up constant image size inference
     model = Darknet(config.cfg, img_size)
     # Load weights
-    if config.weights.endswith('.pt'):  # pytorch format
-        model.load_state_dict(torch.load(config.weights, map_location=device)['model'])
-    else:  # darknet format
-        _ = load_darknet_weights(model, config.weights)
+    model.load_state_dict(torch.load(config.weights, map_location=device)['model'])
     # Eval mode
     model.to(device).eval()
     half = True and device.type != 'cpu'  # half precision only supported on CUDA
     if half:
         model.half()
-    if webcam:
-        # stream_img = True
-        dataset = LoadWebcam(config.source, img_size=img_size, half=half)
+    dataset = LoadWebcam(config.source, img_size=img_size, half=half)
     classes = load_classes(parse_data_cfg(config.data)['names'])
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(classes))]
     return dataset,device,model,classes,colors
@@ -49,8 +44,8 @@ def check_color(box,target_color):
         else:
             return 0
 
+
 def balloon_tracker():
-    global tracker_obj
     recodone_flag = 0
     init_flag = 0
     track_cnt = 0
@@ -89,7 +84,7 @@ def balloon_tracker():
                                 print("flag set")
                                 init_box = xyxy
                                 cv2.imshow("box", box)
-                                print([init_box[0],init_box[1],init_box[2]-init_box[0],init_box[3]-init_box[1]])
+                                # print([init_box[0],init_box[1],init_box[2]-init_box[0],init_box[3]-init_box[1]])
         elif(recodone_flag == 1 ):
             track_cnt += 1
             print("tracker cnt %s"%track_cnt)
@@ -108,15 +103,14 @@ def balloon_tracker():
                 if color is not None:
                     color_check = check_color((im0[t1[1]+2:t2[1]-2, t1[0]+2:t2[0]-2]),color)
                 print("color check result is %s"%color_check)
-            if (track_cnt%30 == 0 or color_check != 1):
+            if (track_cnt%50 == 0 or color_check != 1):
                 recodone_flag = 0
                 init_flag = 0
         cv2.imshow(config.weights, im0)
-
-
         if cv2.waitKey(1) == 27:  # esc to quit
             cv2.destroyAllWindows()
             break
+
 
 if __name__ == '__main__':
     with torch.no_grad():

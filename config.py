@@ -12,3 +12,4 @@ serialPort = "COM14"  # serial no /dev/ttyUSB0
 baudRate = 9600  # Baudrate
 test_mode = True
 
+
