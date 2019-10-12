@@ -93,11 +93,6 @@ class SerialPort:
             print(self.message)
 
 
-def print_dist(q,):
-    while True:
-        dist = q.get()
-        print(dist)
-
 def tast_ult():
     print("testing")
     mSerial = SerialPort(config.serialPort, config.baudRate)
