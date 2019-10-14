@@ -49,19 +49,19 @@ def image_put(q):
     try:
         while True:
             q.put(cap.read()[1])
-            q.get() if q.qsize() > 4 else time.sleep(0.01)
+            q.get() if q.qsize() > 1 else time.sleep(0.01)
     except Exception as e:
         print(Exception, ": in image put ", e)
 
 
-def image_get(q, boxq, window_name):
+def image_get(q,window_name):
     cv2.namedWindow(window_name, flags=cv2.WINDOW_FREERATIO)
     try:
         while True:
             frame = q.get()
-            if (boxq.qsize()>0):
-                box = boxq.get(block = False)
-                cv2.rectangle(frame,(box[0],box[1]),(box[2],box[3]),(255,0,0),1)
+            # if (boxq.qsize()>0):
+            #     box = boxq.get(block = False)
+            #     cv2.rectangle(frame,(box[0],box[1]),(box[2],box[3]),(255,0,0),1)
             cv2.imshow(window_name, frame)
             cv2.waitKey(1)
     except Exception as e:
@@ -229,6 +229,25 @@ def Serial_threading():
         print("error")
 
 
+# def Serial_threading():
+
+    # print("testing")
+    # mSerial = SerialPort(config.serialPort, config.baudRate)
+    # try:
+    #     t1 = threading.Thread(target=mSerial.read_data)
+    #     t2 = threading.Thread(target=mSerial.set_speed)
+    # except:
+    #     print("error")
+    # try:
+    #     t1.start()
+    #     t2.start()
+    #     while True:
+    #         mSerial.get_dist()
+    #         print("distance is %s"%global_dist)
+    # except:
+    #     print("error")
+
+
 def init_detect():
     img_size = 416
     webcam = '0'
@@ -268,10 +287,8 @@ def run_single_camera():
     color_queue = mp.Value(ctypes.c_char_p,b'white')
 
     processes = [mp.Process(target=image_put, args=(img_queue,)),
-                 mp.Process(target=image_get, args=(img_queue, boxq, 'Cam0')),
-                 mp.Process(target=torch_recog_threading,
-                            args=(img_queue, boxq, initbox, device, model, classes, colors,color_queue,recondone_queue,)),
-                 mp.Process(target=tracking_thread, args=(initbox, img_queue, boxq,color_queue,track_cnt,recondone_queue,))
+                 mp.Process(target=image_get, args=(img_queue,'Cam0')),
+                 mp.Process(target=Serial_threading)
                  ]
 
     [process.start() for process in processes]
