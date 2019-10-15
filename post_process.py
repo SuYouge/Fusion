@@ -139,7 +139,8 @@ def match_img(image,Target,value):
     right_bottom = (left_top[0] + w, left_top[1] + h)
     if max_val>=value:
         match = 1
-    return match,left_top,right_bottom
+    new_box = image[left_top[1]:right_bottom[1], left_top[0]:right_bottom[0]]
+    return match,left_top,right_bottom,new_box
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ source = '0'
 cfg = 'cfg/yolov3-tiny-2cls.cfg'
 data = 'data/ball.data'
 
-conf_thres = 0.95
+conf_thres = 0.85
 nms_thres = 0
 # serialPort = "/dev/ttyUSB0"
 serialPort = "COM14"  if platform.system() == 'Windows' else "/dev/ttyUSB0"# serial no /dev/ttyUSB0

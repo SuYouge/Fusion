@@ -91,9 +91,12 @@ def serial_threading(serial_flag,list_queue):
         try:
             t1.start()
             t2.start()
+            center = ((0,0),0)
+            last_step = 0
             while True:
+                step = time.clock()
                 mSerial.get_dist()
-                mode_test()
+                center,last_step= mode_test(step,center,last_step)
                 if (list_queue.qsize()>0):
                     list = list_queue.get()
                     inqueue(list)
@@ -101,7 +104,7 @@ def serial_threading(serial_flag,list_queue):
         except Exception as e:
                 print(Exception, ": in start get dist ", e)
     else:
-        time.sleep(10)
+        time.sleep(5)
 
 
 def set_speed(x=0,y=0,r=0):
@@ -131,10 +134,16 @@ def shake(times):
 
 
 # Finding mode
-def mode_test():
+def mode_test(step,last_center,last_step):
     global shake_flag
     # Finding mode
     center = cal_ave()
+    print('%s is step'%(step - last_step))
+    # if ((step - last_step)>0):
+    #     speed = ((center[0][0]-last_center[0][0])/(step - last_step))*10e3
+    # else:
+    #     speed = 0
+    # print(set_front("speed between two frame is %s" % speed ,1))
     if ((center[0] == (0,0)) and (shake_flag != 1)):
         set_speed(0, 0, diappear_flag*300)
         print("finding in %s\n"%diappear_flag)
@@ -160,7 +169,9 @@ def mode_test():
             else:
                 shake_flag = 1
         print(set_front("Found",1))
+    last_step = step
     print(center)
+    return center,last_step
 
 
 def cal_ave():
@@ -236,7 +247,7 @@ def image_get(q,list_queue,serial_flag):
             im0 = q.get()
             img = set_size(im0, half)
             det_cnt += 1
-            if (len(temp_cache) == 0 or det_cnt % 10 == 0):
+            if (len(temp_cache) == 0 or det_cnt % 15 == 0):
                 print("in recognition")
                 img = torch.from_numpy(img).unsqueeze(0).to(device)
                 pred, _ = model(img)
@@ -258,21 +269,22 @@ def image_get(q,list_queue,serial_flag):
                         # cache.put(list) # if get immediately no more list in cache
                         if (classes[int(cls)] == 'balloon'):
                             cntm, color = post_process.get_color(box)
+                            target_color = color
                             if (cntm is not None):
                                 match = post_process.match_img(im0, box, 0.8)
-                                # template_queue.put(box)
                                 temp_cache = box
                                 cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 0, 0), 1)
             elif (len(temp_cache) > 0):
-                match, c1, c2 = post_process.match_img(im0, temp_cache, 0.75)
+                match, c1, c2,new_box = post_process.match_img(im0, temp_cache, 0.75)
                 c1n, c2n = ((floatn(c1[0] / im0.shape[1]), floatn(c1[1] / im0.shape[0])),
                             (floatn(c2[0] / im0.shape[1]), floatn(c2[1] / im0.shape[0])))
-                if (match != 0):
-                    print("matching")
+                if ((match != 0) and (check_color(new_box, target_color))):
+                    print(set_front("matching", 1))
                     list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \
                             [0, [0, 0], [0, 0], 0]]
                     list_queue.put(list)
                     cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (0, 0, 255), 1)
+                    temp_cache = new_box
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
     except Exception as e:
@@ -300,9 +312,7 @@ def run_single_camera():
     img_queue = mp.Queue()
     list_queue = mp.Queue()
     serial_flag = mp.Queue()
-    # template_queue = mp.Queue()
-    # match_flag_queue = mp.Queue()
-    # tracker_flag = mp.Value("d", 1)
+
     processes = [
                  mp.Process(target=image_put, args=(img_queue,)),
                  mp.Process(target=image_get, args=(img_queue, list_queue,serial_flag)),
