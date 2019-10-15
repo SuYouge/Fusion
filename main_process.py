@@ -224,69 +224,60 @@ def image_put(q,):
         print(Exception, ": in image put ", e)
 
 
-def image_get(q,list_queue,serial_flag,template_queue,match_flag):
+def image_get(q,list_queue,serial_flag):
     time.sleep(3)
     device, model, classes, colors = init_detect()
     cv2.namedWindow('Cam0', flags=cv2.WINDOW_FREERATIO)
     half = True and device.type != 'cpu'
+    temp_cache = []
+    det_cnt = 0
     try:
         while True:
             im0 = q.get()
             img = set_size(im0, half)
-            print("in recognition")
-            img = torch.from_numpy(img).unsqueeze(0).to(device)
-            pred, _ = model(img)
-            det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
-            if (config.test_mode is not True):
-                serial_flag.put(1)
-            s = '%gx%g ' % img.shape[2:]
-            if det is not None and len(det):
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += '%g %ss, ' % (n, classes[int(c)])  # add to string
-                for *xyxy, conf, _, cls in det:
-                    label = '%s %.2f' % (classes[int(cls)], conf)
-                    print("label is %s" % label)
-                    list, box = get_recbox(xyxy, im0, label=label)
+            det_cnt += 1
+            if (len(temp_cache) == 0 or det_cnt % 10 == 0):
+                print("in recognition")
+                img = torch.from_numpy(img).unsqueeze(0).to(device)
+                pred, _ = model(img)
+                det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
+                if (config.test_mode is not True):
+                    serial_flag.put(1)
+                s = '%gx%g ' % img.shape[2:]
+                if det is not None and len(det):
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                    for c in det[:, -1].unique():
+                        n = (det[:, -1] == c).sum()  # detections per class
+                        s += '%g %ss, ' % (n, classes[int(c)])  # add to string
+                    for *xyxy, conf, _, cls in det:
+                        label = '%s %.2f' % (classes[int(cls)], conf)
+                        print("label is %s" % label)
+                        list, box = get_recbox(xyxy, im0, label=label)
+                        list_queue.put(list)
+                        # cache.put(list) # if get immediately no more list in cache
+                        if (classes[int(cls)] == 'balloon'):
+                            cntm, color = post_process.get_color(box)
+                            if (cntm is not None):
+                                match = post_process.match_img(im0, box, 0.8)
+                                # template_queue.put(box)
+                                temp_cache = box
+                                cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 0, 0), 1)
+            elif (len(temp_cache) > 0):
+                match, c1, c2 = post_process.match_img(im0, temp_cache, 0.75)
+                c1n, c2n = ((floatn(c1[0] / im0.shape[1]), floatn(c1[1] / im0.shape[0])),
+                            (floatn(c2[0] / im0.shape[1]), floatn(c2[1] / im0.shape[0])))
+                if (match != 0):
+                    print("matching")
+                    list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \
+                            [0, [0, 0], [0, 0], 0]]
                     list_queue.put(list)
-                    # cache.put(list) # if get immediately no more list in cache
-                    if (classes[int(cls)] == 'balloon'):
-                        cntm, color = post_process.get_color(box)
-                        if (cntm is not None):
-                            match = post_process.match_img(im0, box, 0.8)
-                            template_queue.put(box)
-                            match_flag.put(1)
-                            cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 0, 0), 1)
+                    cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (0, 0, 255), 1)
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
     except Exception as e:
         print(Exception, ": in image get ", e)
 
-
-def match_tracker(tempqueue,im0,list_queue,match_flag):
-    cnt = 0
-    # waiting match_flag
-    while True:
-        flag = match_flag.get()
-        print("Match Flag setting")
-        time.sleep(0.1)
-        if (flag ==1): break
-    while True:
-        img = im0.get()
-        template = tempqueue.get()
-        match, c1, c2 = post_process.match_img(img, template, 0.75)
-        c1n, c2n = ((floatn(c1[0] / img.shape[1]), floatn(c1[1] / img.shape[0])),
-                    (floatn(c2[0] / img.shape[1]), floatn(c2[1] / img.shape[0])))
-        if (match != 0):
-            print("matching")
-            list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.9], \
-                    [0, [0, 0], [0, 0], 0]]
-            list_queue.put(list)
-            cv2.rectangle(img, (c1[0], c1[1]), (c2[0], c2[1]), (0, 255, 0), 1)
-        cv2.imshow('Tracker', img)
-        cv2.waitKey(1)
 
 def init_detect():
     img_size = 416
@@ -309,14 +300,13 @@ def run_single_camera():
     img_queue = mp.Queue()
     list_queue = mp.Queue()
     serial_flag = mp.Queue()
-    template_queue = mp.Queue()
-    match_flag_queue = mp.Queue()
-    tracker_flag = mp.Value("d", 1)
+    # template_queue = mp.Queue()
+    # match_flag_queue = mp.Queue()
+    # tracker_flag = mp.Value("d", 1)
     processes = [
                  mp.Process(target=image_put, args=(img_queue,)),
-                 mp.Process(target=image_get, args=(img_queue, list_queue,serial_flag,template_queue,match_flag_queue)),
+                 mp.Process(target=image_get, args=(img_queue, list_queue,serial_flag)),
                  mp.Process(target=serial_threading,args=(serial_flag,list_queue,)),
-                 mp.Process(target=match_tracker,args=(template_queue,img_queue,list_queue,match_flag_queue))
                  ]
 
     [process.start() for process in processes]
