@@ -1,7 +1,7 @@
 import time
 import multiprocessing as mp
 import serial
-
+import platform
 import struct
 import config
 import threading
@@ -210,19 +210,8 @@ def inqueue(box):
     print("is %s"%cache_box)
 
 
-def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21, flip_method=0) :
-    return ('nvarguscamerasrc ! ' 
-    'video/x-raw(memory:NVMM), '
-    'width=(int)%d, height=(int)%d, '
-    'format=(string)NV12, framerate=(fraction)%d/1 ! '
-    'nvvidconv flip-method=%d ! '
-    'video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! '
-    'videoconvert ! '
-    'video/x-raw, format=(string)BGR ! appsink'  % (capture_width,capture_height,framerate,flip_method,display_width,display_height))
-
-
 def image_put(q,):
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0) if platform.system() == 'Windows' else cv2.VideoCapture(gstreamer_pipeline(flip_method=0),cv2.CAP_GSTREAMER)
     if cap.isOpened():
         print('Successfully open Cam')
     else:
@@ -248,7 +237,8 @@ def image_get(q,list_queue,serial_flag):
             img = torch.from_numpy(img).unsqueeze(0).to(device)
             pred, _ = model(img)
             det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
-            serial_flag.put(1)
+            if (config.test_mode is not True):
+                serial_flag.put(1)
             s = '%gx%g ' % img.shape[2:]
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size

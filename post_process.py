@@ -111,7 +111,10 @@ def get_color(frame):
         cv2.imwrite('cache_pic/' + d + '.jpg', mask)
         binary = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)[1]
         binary = cv2.dilate(binary, None, iterations=2)
-        cnts, hiera = cv2.findContours(binary.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if (cv2.__version__=='4.1.1'):
+            cnts, hiera = cv2.findContours(binary.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        else:
+            img, cnts, hiera = cv2.findContours(binary.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         sum = 0
         for c in cnts:
             sum += cv2.contourArea(c)
