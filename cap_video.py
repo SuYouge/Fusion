@@ -15,7 +15,7 @@ def make_video():
     cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
     fourcc = cv2.VideoWriter_fourcc(*"DIVX")
     now = time.strftime("%Y-%m-%d-%H_%M_%S",time.localtime(time.time()))
-    fname = "data_video/"+now + r".mp4"
+    fname = "data_video/"+now + r".avi"
     out = cv2.VideoWriter(fname, fourcc, 20.0, (480,360))
     while(cap.isOpened()):
         ret, frame = cap.read()

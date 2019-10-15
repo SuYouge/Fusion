@@ -71,29 +71,37 @@ class SerialPort:
             self.message = int(re.findall(r'\d+', str_dist)[0])
             global_dist = self.message
             # print('这是进程{0},线程{1}'.format(mp.current_process(), threading.current_thread()))
-            print('Flag')
+            # print('Flag')
 
 
-def serial_threading(list_queue):
-    print("testing")
-    try:
-        mSerial = SerialPort(config.serialPort, config.baudRate)
-        t1 = threading.Thread(target=mSerial.read_data)
-        t2 = threading.Thread(target=mSerial.set_speed)
-    except Exception as e:
-        print(Exception, ": in Serial threading ", e)
-    try:
-        t1.start()
-        t2.start()
-        while True:
-            mSerial.get_dist()
-            mode_test()
-            if (list_queue.qsize()>0):
-                list = list_queue.get()
-                inqueue(list)
-            print("distance is %s"%global_dist)
-    except Exception as e:
-            print(Exception, ": in start get dist ", e)
+def serial_threading(serial_flag,list_queue):
+    while True:
+        flag = serial_flag.get()
+        print("Flag setting")
+        time.sleep(1)
+        if (flag ==1): break
+    if (flag == 1):
+        print("testing")
+        try:
+            mSerial = SerialPort(config.serialPort, config.baudRate)
+            t1 = threading.Thread(target=mSerial.read_data)
+            t2 = threading.Thread(target=mSerial.set_speed)
+        except Exception as e:
+            print(Exception, ": in Serial threading ", e)
+        try:
+            t1.start()
+            t2.start()
+            while True:
+                mSerial.get_dist()
+                mode_test()
+                if (list_queue.qsize()>0):
+                    list = list_queue.get()
+                    inqueue(list)
+                print("distance is %s"%global_dist)
+        except Exception as e:
+                print(Exception, ": in start get dist ", e)
+    else:
+        time.sleep(10)
 
 
 def set_speed(x=0,y=0,r=0):
@@ -227,7 +235,9 @@ def image_put(q,):
         print(Exception, ": in image put ", e)
 
 
-def image_get(q,device, model, classes, list_queue):
+def image_get(q,list_queue,serial_flag):
+    time.sleep(3)
+    device, model, classes, colors = init_detect()
     cv2.namedWindow('Cam0', flags=cv2.WINDOW_FREERATIO)
     half = True and device.type != 'cpu'
     try:
@@ -238,6 +248,7 @@ def image_get(q,device, model, classes, list_queue):
             img = torch.from_numpy(img).unsqueeze(0).to(device)
             pred, _ = model(img)
             det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
+            serial_flag.put(1)
             s = '%gx%g ' % img.shape[2:]
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
@@ -278,15 +289,15 @@ def init_detect():
 
 
 def run_single_camera():
-    device, model, classes, colors = init_detect()
+    # device, model, classes, colors = init_detect()
     mp.set_start_method(method='spawn')  # init
     img_queue = mp.Queue()
     list_queue = mp.Queue()
-
+    serial_flag = mp.Queue()
     processes = [
                  mp.Process(target=image_put, args=(img_queue,)),
-                 mp.Process(target=image_get, args=(img_queue,device, model, classes, list_queue)),
-                 mp.Process(target=serial_threading,args=(list_queue,))
+                 mp.Process(target=image_get, args=(img_queue, list_queue,serial_flag)),
+                 mp.Process(target=serial_threading,args=(serial_flag,list_queue,))
                  ]
 
     [process.start() for process in processes]
