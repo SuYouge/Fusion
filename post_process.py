@@ -100,7 +100,7 @@ def getColorList():
 
 # 处理图片
 def get_color(frame):
-    print('go in get_color')
+    # print('go in get_color')
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     maxsum = -100
     color = None
@@ -122,7 +122,7 @@ def get_color(frame):
             maxsum = sum
             color = d
             cntm = cnts
-        # print(color)
+        print(color)
     return cntm,color
 
 

@@ -248,7 +248,7 @@ def image_get(q,list_queue,serial_flag):
             img = set_size(im0, half)
             det_cnt += 1
             if (len(temp_cache) == 0 or det_cnt % 15 == 0):
-                print("in recognition")
+                print("in recognition %s"%det_cnt)
                 img = torch.from_numpy(img).unsqueeze(0).to(device)
                 pred, _ = model(img)
                 det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
