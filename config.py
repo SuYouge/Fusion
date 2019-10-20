@@ -16,5 +16,5 @@ serialPort = "COM14"  if platform.system() == 'Windows' else "/dev/ttyUSB0"# ser
 # videosource =
 
 baudRate = 9600  # Baudrate
-test_mode = False
+test_mode = True
 

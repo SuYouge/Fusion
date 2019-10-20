@@ -240,8 +240,15 @@ def image_get(q,list_queue,serial_flag):
     device, model, classes, colors = init_detect()
     cv2.namedWindow('Cam0', flags=cv2.WINDOW_FREERATIO)
     half = True and device.type != 'cpu'
+    part_match_flag = 0
     temp_cache = []
+    flag_1 = 0
+    temp_cache_1 = []
+    temp_cache_2 = []
+    temp_cache_3 = []
+    temp_cache_4 = []
     det_cnt = 0
+    in_part = 0
     try:
         while True:
             im0 = q.get()
@@ -264,27 +271,35 @@ def image_get(q,list_queue,serial_flag):
                     for *xyxy, conf, _, cls in det:
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         print("label is %s" % label)
-                        list, box = get_recbox(xyxy, im0, label=label)
+                        list, box,temp_cache_1,temp_cache_2,temp_cache_3,temp_cache_4 = get_recbox(xyxy, im0, label=label)
                         list_queue.put(list)
                         # cache.put(list) # if get immediately no more list in cache
                         if (classes[int(cls)] == 'balloon'):
                             cntm, color = post_process.get_color(box)
                             target_color = color
+                            print("target color is %s"%target_color)
                             if (cntm is not None):
                                 match = post_process.match_img(im0, box, 0.8)
                                 temp_cache = box
+                                in_part = 0
                                 cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 0, 0), 1)
             elif (len(temp_cache) > 0):
-                match, c1, c2,new_box = post_process.match_img(im0, temp_cache, 0.75)
+                match, c1, c2,new_box,_,_,_,_ = post_process.match_img(im0, temp_cache, 0.75)
                 c1n, c2n = ((floatn(c1[0] / im0.shape[1]), floatn(c1[1] / im0.shape[0])),
                             (floatn(c2[0] / im0.shape[1]), floatn(c2[1] / im0.shape[0])))
-                if ((match != 0) and (check_color(new_box, target_color))):
+                flag_1 = (match != 0) and (check_color(new_box, target_color))
+                if (flag_1):
                     print(set_front("matching", 1))
                     list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \
                             [0, [0, 0], [0, 0], 0]]
                     list_queue.put(list)
                     cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (0, 0, 255), 1)
                     temp_cache = new_box
+                    if (in_part != 1):
+                        temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = update_part(new_box)
+                else:
+                    temp_cache = temp_cache_2
+                    in_part = 1
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
     except Exception as e:

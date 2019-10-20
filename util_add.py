@@ -12,6 +12,10 @@ def get_recbox(x, img,label=None):
     list = [list_1, list_2]
     name_list = ['balloon', 'ball']
     box = img[c1[1]:c2[1], c1[0]:c2[0]]
+    box_01 = img[c1[1]:int((c2[1]+c1[1])/2), c1[0]:c2[0]]
+    box_02 = img[int((c2[1]+c1[1])/2):c2[1], c1[0]:c2[0]]
+    box_03 = img[c1[1]:c2[1], c1[0]:int((c2[0]+c1[0])/2)]
+    box_04 = img[c1[1]:c2[1], int((c2[0]+c1[0])/2):c2[0]]
     if label:
         name = ''.join(re.findall(r'[A-Za-z]', label))
         posbility = ''.join(re.findall(r"\d+\.?\d*", label))
@@ -23,7 +27,7 @@ def get_recbox(x, img,label=None):
         list[name_list.index(name)][2] = c2n
         list[name_list.index(name)][3] = float(posbility)
         # print("label is %s"%label)
-    return list, box
+    return list, box,box_01,box_02,box_03,box_04
 
 
 def set_size(im0,half):
@@ -42,8 +46,10 @@ def check_color(box,target_color):
         return 0
     else:
         if (color == target_color):
+            print("match success")
             return 1
         else:
+            print("match failed")
             return 0
 
 
@@ -79,3 +85,9 @@ def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=4
     'videoconvert ! '
     'video/x-raw, format=(string)BGR ! appsink'  % (capture_width,capture_height,framerate,flip_method,display_width,display_height))
 
+def update_part(new_box):
+    new_box_1 = new_box[0:int(new_box.shape[0]/2), :]
+    new_box_2 = new_box[int(new_box.shape[0]/2):new_box.shape[0], :]
+    new_box_3 = new_box[:,0 :int(new_box.shape[1]/2)]
+    new_box_4 = new_box[:,int(new_box.shape[1]/2) :new_box.shape[1]]
+    return new_box_1,new_box_2,new_box_3,new_box_4

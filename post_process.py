@@ -122,7 +122,7 @@ def get_color(frame):
             maxsum = sum
             color = d
             cntm = cnts
-        print(color)
+    print(color)
     return cntm,color
 
 
@@ -139,8 +139,12 @@ def match_img(image,Target,value):
     right_bottom = (left_top[0] + w, left_top[1] + h)
     if max_val>=value:
         match = 1
-    new_box = image[left_top[1]:right_bottom[1], left_top[0]:right_bottom[0]]
-    return match,left_top,right_bottom,new_box
+    new_box1 = image[left_top[1]:right_bottom[1], left_top[0]:right_bottom[0]]
+    new_box2 = image[left_top[1]:int((right_bottom[1]+left_top[1])/2), left_top[0]:right_bottom[0]]
+    new_box3 = image[int((right_bottom[1]+left_top[1])/2):right_bottom[1], left_top[0]:right_bottom[0]]
+    new_box4 = image[left_top[1]:right_bottom[1], left_top[0]:int((right_bottom[0]+left_top[0])/2)]
+    new_box5 = image[left_top[1]:right_bottom[1], int((right_bottom[0]+left_top[0])/2):right_bottom[0]]
+    return match,left_top,right_bottom,new_box1,new_box2,new_box3,new_box4,new_box5
 
 
 if __name__ == '__main__':
