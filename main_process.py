@@ -86,7 +86,7 @@ def serial_threading(serial_flag,list_queue,):
         # speed_queue.put((0, 0, 0))
         if (flag ==1): break
     if (flag == 1):
-        print("testing")
+        print("Enter SerialPort Mode")
         try:
             mSerial = SerialPort(config.serialPort, config.baudRate)
             t1 = threading.Thread(target=mSerial.read_data)
@@ -98,21 +98,23 @@ def serial_threading(serial_flag,list_queue,):
             t2.start()
             center = ((0,0),0)
             last_step = 0
-            pcnt = 0
+            # pcnt = 0
             while True:
                 step = time.clock()
                 mSerial.get_dist()
                 # if (mode_flag == 2):
                 #     wander_mode()
-                if(mode_flag == 1):
-                    # center,last_step,speed = mode_test(step,center,last_step)
-                    speed = wangder_test()
+                # if(mode_flag == 1):
+                #     center,last_step,speed = mode_test(step,center,last_step)
+                _ = wander_test()
                 if (list_queue.qsize()>0):
                     list = list_queue.get()
+                    # print(list)
                     inqueue(list)
-                pcnt+=1
-                if (pcnt%30==0):
+                try:
                     print("distance is %s"%global_dist)
+                except:
+                    pass
         except Exception as e:
                 print(Exception, ": in start get dist ", e)
     else:
@@ -141,8 +143,31 @@ def counter(target,cnt):
         return 0,True
 
 
-def match_pattern_list():
-    pass
+def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4):
+    match2, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_2, 0.75)
+    if (match2==1):
+        ret = 1
+        cache = temp_cache_2
+        return ret, cache
+    match1, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_1, 0.75)
+    if (match1==1):
+        ret = 1
+        cache = temp_cache_1
+        return ret, cache
+    match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.75)
+    if (match3==1):
+        ret = 1
+        cache = temp_cache_3
+        return ret, cache
+    match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.75)
+    if (match4==1):
+        ret = 1
+        cache = temp_cache_4
+        return ret, cache
+    ret = 0
+    cache = []
+    return ret, cache
+
 
 
 def set_speed(x=0,y=0,r=0):
@@ -151,7 +176,10 @@ def set_speed(x=0,y=0,r=0):
     global global_speedr
     global_speedx = x
     global_speedy = y
-    global_speedr = r
+    if config.reverse is True:
+        global_speedr = -r
+    else:
+        global_speedr = r
     speed = (x,y,r)
     return speed
 
@@ -173,12 +201,37 @@ def shake(times):
     pass
 
 
-def wangder_test():
+def wander_test():
     # Finding mode
-    balloon_center = cal_ave_balloon()
+    balloon_center, balloon_size = cal_ave_balloon()
+    print(set_front(("balloon size is  %s" % balloon_size), 2))
     foam_center = cal_ave_foam()
-    # speed = set_speed(0, 300, 0)
-    speed = set_speed(0,0,300)
+    speed = 0
+    if (balloon_center[0] == (0, 0)):
+        speed = set_speed(0, 0, diappear_flag * 200)
+        print("finding in %s\n" % diappear_flag)
+        # if target was found , but lost check found_flag
+    else:
+        if (balloon_center[0][0] < 0.35 or balloon_center[0][0] > 0.65):
+            centering_speed = (balloon_center[0][0] - 0.5) * 400
+            print("centering speed %s" % centering_speed)
+            speed = set_speed(0, 0, suppress(centering_speed, 350))
+            print("centering")
+        elif (0.35 <= balloon_center[0][0] <= 0.65):
+            # set_speed(0, 0, 0)
+            print("incenter")
+            if ((global_dist > 400) and (balloon_size<0.3)):
+                centering_speed = (balloon_center[0][0] - 0.5) * 100
+                speed = set_speed(0, 400, suppress(centering_speed, 100))
+                # print("approaching %s"%global_dist)
+                print(set_front(("approaching %s" % global_dist), 1))
+                # check
+            elif ((global_dist > 400) and (balloon_size>=0.3)):
+                centering_speed = (balloon_center[0][0] - 0.5) * 100
+                speed = set_speed(0, 200, suppress(centering_speed, 100))
+            else:
+                print(set_front("Found", 1))
+                speed = set_speed(0, 0, 0)
     return speed
 
 
@@ -186,7 +239,7 @@ def wangder_test():
 def mode_test(step,last_center,last_step):
     global shake_flag
     # Finding mode
-    balloon_center = cal_ave_balloon()
+    balloon_center,balloon_size = cal_ave_balloon()
     foam_center = cal_ave_foam()
     print('%s is step'%(step - last_step))
     # if ((step - last_step)>0):
@@ -227,21 +280,25 @@ def mode_test(step,last_center,last_step):
 def cal_ave_balloon():
     global cache_box
     global diappear_flag
+    # print("%s is in box" % cache_box)
     x1,y1 = 0,0
     x2,y2 = 0,0
     p = 0
     cnt = 0
     center = [(0,0),0]
+    size = 0
     if len(cache_box):
         for i in range(len(cache_box)):
-            if (cache_box[i][1][0] == 1):
-                x1 = x1 + cache_box[i][1][1][0]
-                y1 = y1 + cache_box[i][1][1][1]
-                x2 = x2 + cache_box[i][1][2][0]
-                y2 = y2 + cache_box[i][1][2][1]
-                p = p + cache_box[i][1][3]
+            if (cache_box[i][0][0] == 1):
+                x1 = x1 + cache_box[i][0][1][0]
+                y1 = y1 + cache_box[i][0][1][1]
+                x2 = x2 + cache_box[i][0][2][0]
+                y2 = y2 + cache_box[i][0][2][1]
+                p = p + cache_box[i][0][3]
+                size = size + (x2 - x1)
                 cnt = cnt + 1
                 center = [((x1/cnt+x2/cnt)/2,(y1/cnt+y2/cnt)/2),p/cnt]
+                size = size/cnt
                 if (center[0][0]<=0.5):
                     diappear_flag = -1
                 elif(center[0][0]>0.5):
@@ -250,7 +307,8 @@ def cal_ave_balloon():
             pass
     else:
         pass
-    return center
+    print(center,size)
+    return center,size
 
 
 def cal_ave_foam():
@@ -262,12 +320,12 @@ def cal_ave_foam():
     foam_center = [(0,0),0]
     if len(cache_box):
         for i in range(len(cache_box)):
-            if (cache_box[i][0][0] == 1):
-                x1 = x1 + cache_box[i][0][1][0]
-                y1 = y1 + cache_box[i][0][1][1]
-                x2 = x2 + cache_box[i][0][2][0]
-                y2 = y2 + cache_box[i][0][2][1]
-                p = p + cache_box[i][0][3]
+            if (cache_box[i][1][0] == 1):
+                x1 = x1 + cache_box[i][1][1][0]
+                y1 = y1 + cache_box[i][1][1][1]
+                x2 = x2 + cache_box[i][1][2][0]
+                y2 = y2 + cache_box[i][1][2][1]
+                p = p + cache_box[i][1][3]
                 cnt = cnt + 1
                 foam_center = [((x1/cnt+x2/cnt)/2,(y1/cnt+y2/cnt)/2),p/cnt]
         else:
@@ -289,7 +347,18 @@ def inqueue(box):
             cache_box.remove(cache_box[0])
             cache_box.pop()
     # ave_box = cal_average(cache_box)
-    print("is %s"%cache_box)
+    # print("%s is in box"%cache_box)
+
+# necessary for USB camera
+def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21, flip_method=0) :
+    return ('nvarguscamerasrc ! ' 
+    'video/x-raw(memory:NVMM), '
+    'width=(int)%d, height=(int)%d, '
+    'format=(string)NV12, framerate=(fraction)%d/1 ! '
+    'nvvidconv flip-method=%d ! '
+    'video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! '
+    'videoconvert ! '
+    'video/x-raw, format=(string)BGR ! appsink'  % (capture_width,capture_height,framerate,flip_method,display_width,display_height))
 
 
 def image_put(q,):
@@ -314,12 +383,14 @@ def image_get(q,list_queue,serial_flag,):
     temp_cache = []
     temp_cache_2 = []
     det_cnt = 0
-    in_part = 0
+    in_part_1 = 0
     try:
         while True:
             im0 = q.get()
             img = set_size(im0, half)
             det_cnt += 1
+            list = [[0, [0, 0], [0, 0], 0], \
+                    [0, [0, 0], [0, 0], 0]]
             if (len(temp_cache) == 0 or det_cnt % 15 == 0):
                 print("in recognition %s"%det_cnt)
                 img = torch.from_numpy(img).unsqueeze(0).to(device)
@@ -338,7 +409,7 @@ def image_get(q,list_queue,serial_flag,):
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         print("label is %s" % label)
                         list, box, temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = get_recbox(xyxy, im0, label=label)
-                        list_queue.put(list)
+                        # list_queue.put(list)
                         # cache.put(list) # if get immediately no more list in cache
                         if (classes[int(cls)] == 'balloon'):
                             cntm, color = post_process.get_color(box)
@@ -357,16 +428,17 @@ def image_get(q,list_queue,serial_flag,):
                     print(set_front("matching", 1))
                     list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \
                             [0, [0, 0], [0, 0], 0]]
-                    list_queue.put(list)
+                    # list_queue.put(list)
                     cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (0, 0, 255), 1)
                     temp_cache = new_box
-                    if (in_part != 1):
+                    if (in_part_1 != 1):
                         temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = update_part(new_box)
                 else:
-                    temp_cache = temp_cache_2
-                    in_part = 1
-            else:
-                match_pattern_list()
+                    ret,cache = match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4)
+                    if (ret == 1):
+                        temp_cache = cache
+                        in_part_1 = 1
+            list_queue.put(list)
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
     except Exception as e:

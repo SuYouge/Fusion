@@ -6,8 +6,8 @@ import time
 import config
 # test = serial.Serial("COM14", 9600,bytesize=8, parity='N',timeout=200)
 global_flag = 1
-target_mode = 'PS'
-# target_mode = 'BT'
+# target_mode = 'PS'
+target_mode = 'BT'
 
 class SerialPort:
     message = ''
