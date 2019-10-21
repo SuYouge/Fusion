@@ -3,7 +3,9 @@ import cv2
 
 
 out = 'output'
-weights = 'weights/tiny-1500-best.pt'
+# weights = 'weights/tiny-1500-best.pt'
+# weights = 'weights/best.pt'
+weights = 'weights/tiny-thresh06.pt'
 # half = True
 source = '0'
 cfg = 'cfg/yolov3-tiny-2cls.cfg'
@@ -16,5 +18,6 @@ serialPort = "COM14"  if platform.system() == 'Windows' else "/dev/ttyUSB0"# ser
 # videosource =
 
 baudRate = 9600  # Baudrate
-test_mode = True
+test_mode = False
+
 
