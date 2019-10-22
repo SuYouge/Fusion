@@ -3,7 +3,7 @@ import cv2
 
 
 out = 'output'
-weights = 'weights/tiny-1500-2-best.pt'
+weights = 'weights/tiny-1500-3000-best.pt'
 # weights = 'weights/best.pt'
 # weights = 'weights/tiny-thresh06.pt'
 # half = True

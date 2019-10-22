@@ -74,6 +74,15 @@ def suppress(speed,target_speed):
     return int(speed)
 
 
+def check_red_mark(img):
+    hue_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    low_range = np.array([156, 43, 46])
+    high_range = np.array([180, 255, 255])
+    th = cv2.inRange(hue_image, low_range, high_range)
+    dilated = cv2.dilate(th, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=2)
+    return dilated
+
+
 
 def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21, flip_method=0) :
     return ('nvarguscamerasrc ! ' 

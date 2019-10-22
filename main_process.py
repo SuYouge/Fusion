@@ -148,25 +148,25 @@ def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_
     if (match2==1):
         ret = 1
         cache = temp_cache_2
-        return ret, cache
+        return ret, cache,'down'
     match1, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_1, 0.75)
     if (match1==1):
         ret = 1
         cache = temp_cache_1
-        return ret, cache
+        return ret, cache,'up'
     match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.75)
     if (match3==1):
         ret = 1
         cache = temp_cache_3
-        return ret, cache
+        return ret, cache,'left'
     match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.75)
     if (match4==1):
         ret = 1
         cache = temp_cache_4
-        return ret, cache
+        return ret, cache,'right'
     ret = 0
     cache = []
-    return ret, cache
+    return ret, cache,'none'
 
 
 
@@ -212,23 +212,28 @@ def wander_test():
         print("finding in %s\n" % diappear_flag)
         # if target was found , but lost check found_flag
     else:
-        if (balloon_center[0][0] < 0.35 or balloon_center[0][0] > 0.65):
+        if (balloon_center[0][0] < 0.35 or balloon_center[0][0] > 0.65) and (balloon_size>0.3):
             centering_speed = (balloon_center[0][0] - 0.5) * 400
-            print("centering speed %s" % centering_speed)
+            print("low speed centering speed %s" % centering_speed)
             speed = set_speed(0, 0, suppress(centering_speed, 350))
+            print("centering")
+        elif (balloon_center[0][0] < 0.35 or balloon_center[0][0] > 0.65) and (balloon_size<=0.3):
+            centering_speed = (balloon_center[0][0] - 0.5) * 200
+            print("high speed centering speed %s" % centering_speed)
+            speed = set_speed(0, 0, suppress(centering_speed, 150))
             print("centering")
         elif (0.35 <= balloon_center[0][0] <= 0.65):
             # set_speed(0, 0, 0)
             print("incenter")
             if ((global_dist > 400) and (balloon_size<0.3)):
-                centering_speed = (balloon_center[0][0] - 0.5) * 100
-                speed = set_speed(0, 400, suppress(centering_speed, 100))
+                centering_speed = (balloon_center[0][0] - 0.5) * 200
+                speed = set_speed(0, 500, suppress(centering_speed, 200))
                 # print("approaching %s"%global_dist)
                 print(set_front(("approaching %s" % global_dist), 1))
                 # check
             elif ((global_dist > 400) and (balloon_size>=0.3)):
-                centering_speed = (balloon_center[0][0] - 0.5) * 100
-                speed = set_speed(0, 200, suppress(centering_speed, 100))
+                centering_speed = (balloon_center[0][0] - 0.5) * 200
+                speed = set_speed(0, 300, suppress(centering_speed, 200))
             else:
                 print(set_front("Found", 1))
                 speed = set_speed(0, 0, 0)
@@ -384,6 +389,7 @@ def image_get(q,list_queue,serial_flag,):
     temp_cache_2 = []
     det_cnt = 0
     in_part_1 = 0
+    match_mode = 'none'
     try:
         while True:
             im0 = q.get()
@@ -391,7 +397,7 @@ def image_get(q,list_queue,serial_flag,):
             det_cnt += 1
             list = [[0, [0, 0], [0, 0], 0], \
                     [0, [0, 0], [0, 0], 0]]
-            if (len(temp_cache) == 0 or det_cnt % 15 == 0):
+            if (len(temp_cache) == 0 or det_cnt % 20 == 0):
                 print("in recognition %s"%det_cnt)
                 img = torch.from_numpy(img).unsqueeze(0).to(device)
                 pred, _ = model(img)
@@ -420,8 +426,15 @@ def image_get(q,list_queue,serial_flag,):
                                 temp_cache = box
                                 in_part = 0
                                 cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 0, 0), 1)
+                                match_mode = 'ALL'
+                        elif (classes[int(cls)] == 'ball'):
+                            cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (0, 255, 0), 1)
             elif (len(temp_cache) > 0):
-                match, c1, c2,new_box,_,_,_,_ = post_process.match_img(im0, temp_cache, 0.75)
+                match, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache, 0.70)
+                if (match!=1):
+                    match, c1, c2, new_box, _, _, _, _ = post_process.multi_scale_match(im0, temp_cache, 0.70)
+                img = check_red_mark(im0)
+                cv2.imshow('red mark', img)
                 c1n, c2n = ((floatn(c1[0] / im0.shape[1]), floatn(c1[1] / im0.shape[0])),
                             (floatn(c2[0] / im0.shape[1]), floatn(c2[1] / im0.shape[0])))
                 if ((match != 0) and (check_color(new_box, target_color))):
@@ -432,13 +445,17 @@ def image_get(q,list_queue,serial_flag,):
                     cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (0, 0, 255), 1)
                     temp_cache = new_box
                     if (in_part_1 != 1):
+                        match_mode = 'ALL'
                         temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = update_part(new_box)
                 else:
-                    ret,cache = match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4)
+                    ret,cache,match_mode = match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4)
                     if (ret == 1):
                         temp_cache = cache
                         in_part_1 = 1
+                    else:
+                        match_mode = 'Lost'
             list_queue.put(list)
+            cv2.putText(im0, match_mode, (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
     except Exception as e:

@@ -147,6 +147,47 @@ def match_img(image,Target,value):
     return match,left_top,right_bottom,new_box1,new_box2,new_box3,new_box4,new_box5
 
 
+def multi_scale_match(image,Target,value):
+    template = Target
+    template = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+    # template = cv2.Canny(template, 50, 200)
+    tH = template.shape[0]
+    tW = template.shape[1]
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    found = None
+    match = 0
+    # for i in range(10):
+    for scale in (np.linspace(0.2, 1, 10)[::-1]).tolist():
+        # resized = imutils.resize(gray, width = int(gray.shape[1] * scale))
+        resized = cv2.resize(gray, (0, 0), fx=scale,fy=scale, interpolation=cv2.INTER_NEAREST)
+        r = gray.shape[1] / float(resized.shape[1])
+        # 如果裁剪之后的图片小于模板的大小直接退出
+        if ((resized.shape[0] < tH) or (resized.shape[1] < tW)):
+            # print("template is too big")
+            break
+        # 首先进行边缘检测，然后执行模板检测，接着获取最小外接矩形
+        # edged = cv2.Canny(resized, 50, 200)
+        # res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
+        # result = cv2.matchTemplate(edged, template, cv2.TM_CCOEFF)
+        result = cv2.matchTemplate(resized, template, cv2.TM_CCOEFF_NORMED)
+        (_, maxVal, _, maxLoc) = cv2.minMaxLoc(result)
+        # 如果发现一个新的关联值则进行更新
+        if found is None or maxVal > found[0]:
+            found = (maxVal, maxLoc, r)
+    maxVal, maxLoc, r = found
+    if maxVal>=value:
+        match = 1
+    left_top = (int(maxLoc[0] * r), int(maxLoc[1] * r))
+    right_bottom = (int((maxLoc[0] + tW) * r), int((maxLoc[1] + tH) * r))
+    new_box1 = image[left_top[1]:right_bottom[1], left_top[0]:right_bottom[0]]
+    new_box2 = image[left_top[1]:int((right_bottom[1] + left_top[1]) / 2), left_top[0]:right_bottom[0]]
+    new_box3 = image[int((right_bottom[1] + left_top[1]) / 2):right_bottom[1], left_top[0]:right_bottom[0]]
+    new_box4 = image[left_top[1]:right_bottom[1], left_top[0]:int((right_bottom[0] + left_top[0]) / 2)]
+    new_box5 = image[left_top[1]:right_bottom[1], int((right_bottom[0] + left_top[0]) / 2):right_bottom[0]]
+    print("match const is %s"%maxVal)
+    return match,left_top,right_bottom,new_box1,new_box2,new_box3,new_box4,new_box5
+
+
 if __name__ == '__main__':
     frame = cv2.imread(filename)
     print(get_color(frame))
