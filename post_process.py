@@ -103,7 +103,7 @@ def get_color(frame):
     # print('go in get_color')
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     maxsum = -100
-    color = None
+    color = 'blue'
     color_dict = getColorList()
     cntm = []
     for d in color_dict:
@@ -156,8 +156,10 @@ def multi_scale_match(image,Target,value):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     found = None
     match = 0
+    MAX = 0
+    MC = (0,0)
     # for i in range(10):
-    for scale in (np.linspace(0.2, 1, 10)[::-1]).tolist():
+    for scale in (np.linspace(0.1, 0.5, 5)[::-1]).tolist():
         # resized = imutils.resize(gray, width = int(gray.shape[1] * scale))
         resized = cv2.resize(gray, (0, 0), fx=scale,fy=scale, interpolation=cv2.INTER_NEAREST)
         r = gray.shape[1] / float(resized.shape[1])
@@ -174,11 +176,13 @@ def multi_scale_match(image,Target,value):
         # 如果发现一个新的关联值则进行更新
         if found is None or maxVal > found[0]:
             found = (maxVal, maxLoc, r)
-    maxVal, maxLoc, r = found
-    if maxVal>=value:
+            MAX = maxVal
+            MC = maxLoc
+    # maxVal, maxLoc, r = found
+    if MAX>=value:
         match = 1
-    left_top = (int(maxLoc[0] * r), int(maxLoc[1] * r))
-    right_bottom = (int((maxLoc[0] + tW) * r), int((maxLoc[1] + tH) * r))
+    left_top = (int(MC[0] * r), int(MC[1] * r))
+    right_bottom = (int((MC[0] + tW) * r), int((MC[1] + tH) * r))
     new_box1 = image[left_top[1]:right_bottom[1], left_top[0]:right_bottom[0]]
     new_box2 = image[left_top[1]:int((right_bottom[1] + left_top[1]) / 2), left_top[0]:right_bottom[0]]
     new_box3 = image[int((right_bottom[1] + left_top[1]) / 2):right_bottom[1], left_top[0]:right_bottom[0]]

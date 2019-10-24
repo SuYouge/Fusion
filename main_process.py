@@ -144,7 +144,7 @@ def counter(target,cnt):
 
 
 def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4):
-    match2, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_2, 0.75)
+    match2, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_2, 0.70)
     if (match2==1):
         ret = 1
         cache = temp_cache_2
@@ -154,18 +154,18 @@ def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_
         ret = 1
         cache = temp_cache_1
         return ret, cache,'up'
-    match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.75)
+    match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.70)
     if (match3==1):
         ret = 1
         cache = temp_cache_3
         return ret, cache,'left'
-    match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.75)
+    match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.70)
     if (match4==1):
         ret = 1
         cache = temp_cache_4
         return ret, cache,'right'
     ret = 0
-    cache = []
+    cache = 0
     return ret, cache,'none'
 
 
@@ -390,6 +390,7 @@ def image_get(q,list_queue,serial_flag,):
     det_cnt = 0
     in_part_1 = 0
     match_mode = 'none'
+    target_color = 'blue'
     try:
         while True:
             im0 = q.get()
@@ -414,10 +415,12 @@ def image_get(q,list_queue,serial_flag,):
                     for *xyxy, conf, _, cls in det:
                         label = '%s %.2f' % (classes[int(cls)], conf)
                         print("label is %s" % label)
+                        # box = im0[int(xyxy[1]):int(xyxy[3]), int(xyxy[0]):int(xyxy[2])]
                         list, box, temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = get_recbox(xyxy, im0, label=label)
+                        mark = safe_check(im0, xyxy)
                         # list_queue.put(list)
                         # cache.put(list) # if get immediately no more list in cache
-                        if (classes[int(cls)] == 'balloon'):
+                        if ((classes[int(cls)] == 'balloon') and mark):
                             cntm, color = post_process.get_color(box)
                             target_color = color
                             print("target color is %s"%target_color)
@@ -431,12 +434,13 @@ def image_get(q,list_queue,serial_flag,):
                             cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (0, 255, 0), 1)
             elif (len(temp_cache) > 0):
                 match, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache, 0.70)
-                if (match!=1):
-                    match, c1, c2, new_box, _, _, _, _ = post_process.multi_scale_match(im0, temp_cache, 0.70)
-                img = check_red_mark(im0)
-                cv2.imshow('red mark', img)
+                #if (match!=1):
+                #    match, c1, c2, new_box, _, _, _, _ = post_process.multi_scale_match(im0, temp_cache, 0.70)
+                # img = check_red_mark(im0)
+                # cv2.imshow('red mark', img)
                 c1n, c2n = ((floatn(c1[0] / im0.shape[1]), floatn(c1[1] / im0.shape[0])),
                             (floatn(c2[0] / im0.shape[1]), floatn(c2[1] / im0.shape[0])))
+                # mark = safe_check(im0, (c1[0],c1[1],c2[0],c2[1]))
                 if ((match != 0) and (check_color(new_box, target_color))):
                     print(set_front("matching", 1))
                     list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \

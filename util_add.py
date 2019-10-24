@@ -46,6 +46,7 @@ def check_color(box,target_color):
         return 0
     else:
         if (color == target_color):
+            print("target color is %s"%target_color)
             print("match success")
             return 1
         else:
@@ -67,7 +68,7 @@ def set_front(str,mode):
 def suppress(speed,target_speed):
     if (speed>target_speed):
         speed = target_speed
-    elif(speed<-target_speed):
+    else:
         speed = -target_speed
     # x = speed
     # speed = 1 / (1 + np.exp(-x))
@@ -81,7 +82,6 @@ def check_red_mark(img):
     th = cv2.inRange(hue_image, low_range, high_range)
     dilated = cv2.dilate(th, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=2)
     return dilated
-
 
 
 def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21, flip_method=0) :
@@ -100,3 +100,47 @@ def update_part(new_box):
     new_box_3 = new_box[:,0 :int(new_box.shape[1]/2)]
     new_box_4 = new_box[:,int(new_box.shape[1]/2) :new_box.shape[1]]
     return new_box_1,new_box_2,new_box_3,new_box_4
+
+def safe_check(img,xyxy):
+    box = img[int((xyxy[1]+xyxy[3])/2):int(xyxy[3]+(xyxy[1]+xyxy[3])/2), int(xyxy[0]):int(xyxy[2])]
+    low_range = np.array([156, 43, 46])
+    high_range = np.array([180, 255, 255])
+    hue_image = cv2.cvtColor(box, cv2.COLOR_BGR2HSV)
+    th = cv2.inRange(hue_image, low_range, high_range)
+    dilated = cv2.dilate(th, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=3)
+    cv2.imshow('dilated', dilated)
+    circles = cv2.HoughCircles(dilated, cv2.HOUGH_GRADIENT, 1, 15, param1=15, param2=7, minRadius=3,
+                               maxRadius=120)
+    if circles is not None:
+        x, y, radius = circles[0][0]
+        center = (x, y)
+        cv2.circle(box, center, radius, (0, 255, 0), 2)
+        return True
+    else:
+        return False
+
+
+def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4):
+    match2, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_2, 0.75)
+    if (match2==1):
+        ret = 1
+        cache = temp_cache_2
+        return ret, cache,'down'
+    match1, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_1, 0.75)
+    if (match1==1):
+        ret = 1
+        cache = temp_cache_1
+        return ret, cache,'up'
+    match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.75)
+    if (match3==1):
+        ret = 1
+        cache = temp_cache_3
+        return ret, cache,'left'
+    match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.75)
+    if (match4==1):
+        ret = 1
+        cache = temp_cache_4
+        return ret, cache,'right'
+    ret = 0
+    cache = []
+    return ret, cache,'none'
