@@ -18,7 +18,7 @@ global_dist = 0
 global_speedx = 0
 global_speedy = 0 # if speedy >0 move forward else backward
 global_speedr = 0 # if speedr >0 turn left else turn right
-
+s_cnt = 0
 d_cnt = 0
 debute_flag = 0
 cache_box = []
@@ -112,7 +112,9 @@ def serial_threading(serial_flag,list_queue,):
                 if (mode_flag==1):
                     mode_flag =debute()
                 if (mode_flag==2):
-                    _ = wander_test()
+                    speed, mode_flag = wander_test()
+                if (mode_flag==3):
+                    mode_flag = shake()
                 if (list_queue.qsize()>0):
                     list = list_queue.get()
                     # print(list)
@@ -140,23 +142,6 @@ def set_speed(x=0,y=0,r=0):
     speed = (x,y,r)
     return speed
 
-#
-# def shake(times):
-#     global shake_cnt
-#     global shake_flag
-#     if (times != 0):
-#         if (shake_cnt <= times):
-#             set_speed(0, 0, 500)
-#             shake_cnt += 1
-#         elif(times<=shake_cnt <= 2*times):
-#             set_speed(0, 0, -500)
-#             shake_cnt += 1
-#         else:
-#             shake_cnt = 0
-#             shake_flag = 0
-#         print(set_front("shaking",3))
-#     pass
-
 
 def debute():
     global global_dist
@@ -173,11 +158,14 @@ def debute():
         d_cnt += 1
         if (d_cnt >= 150):
             mode_flag = 2
+    else:
+        mode_flag = 2
     return mode_flag
 
 
 def wander_test():
     global global_dist
+    mode_flag = 2
     # global w_cnt
     # Finding mode
     balloon_center, balloon_size = cal_ave_balloon()
@@ -190,54 +178,78 @@ def wander_test():
         speed = set_speed(0, 0, diappear_flag * 250)
         print("finding in %s\n" % diappear_flag)
         # if target was found , but lost check found_flag
-    elif ((balloon_center[0] != (0, 0))and(global_dist>250)):
+    elif ((balloon_center[0] != (0, 0))and(global_dist>350)):
         centering_speed = (balloon_center[0][0] - 0.5) * 200
         speed = set_speed(0, 500, suppress(centering_speed, 80))
+    elif((balloon_center[0] != (0, 0))and(global_dist<350)):
+        mode_flag = 2
     else:
         print("Wandering")
-    return speed
+    return speed,mode_flag
 
 
-# Finding mode
-def mode_test(step,last_center,last_step):
-    global shake_flag
-    # Finding mode
-    balloon_center,balloon_size = cal_ave_balloon()
+def shake():
+    global global_dist
+    global s_cnt
+    # global mode_flag
+    mode_flag = 3
+    balloon_center, balloon_size = cal_ave_balloon()
+    print(set_front(("shake balloon size is  %s" % balloon_size), 1))
+    print("shake counter is %s" % s_cnt)
     foam_center = cal_ave_foam()
-    print('%s is step'%(step - last_step))
-    # if ((step - last_step)>0):
-    #     speed = ((center[0][0]-last_center[0][0])/(step - last_step))*10e3
-    # else:
-    #     speed = 0
-    # print(set_front("speed between two frame is %s" % speed ,1))
-    if ((balloon_center[0] == (0,0)) and (shake_flag != 1)):
-        speed = set_speed(0, 0, diappear_flag*300)
-        print("finding in %s\n"%diappear_flag)
-        # if target was found , but lost check found_flag
-    elif(shake_flag == 1):
-        shake(1)
-        shake_flag = 0
-    else:
-        if (balloon_center[0][0]<0.35 or balloon_center[0][0]>0.65):
-            centering_speed = (balloon_center[0][0]-0.5)*300
-            print("centering speed %s"%centering_speed)
-            speed = set_speed(0, 0, suppress(centering_speed, 200))
-            print("centering")
-        elif(0.35<=balloon_center[0][0]<=0.65):
-            # set_speed(0, 0, 0)
-            print("incenter")
-            if(global_dist>500):
-                centering_speed = (balloon_center[0][0] - 0.5) * 50
-                speed = set_speed(0, 200, suppress(centering_speed, 50))
-                # print("approaching %s"%global_dist)
-                print(set_front(("approaching %s" % global_dist),1))
-                # check
-            else:
-                shake_flag = 1
-        print(set_front("Found",1))
-    last_step = step
-    print(balloon_center)
-    return balloon_center,last_step,speed
+    speed = (0, 0, 0)
+    total = 50
+    if (200<=global_dist < 250):
+        s_cnt += 1
+        if (s_cnt >= total/2):
+            speed = set_speed(0, 100, 300)
+            mode_flag = 3
+        elif(total/2<s_cnt<=total):
+            speed = set_speed(0, 100, -300)
+            mode_flag = 3
+        else:
+            mode_flag = 2
+    return mode_flag
+# Finding mode
+# def mode_test(step,last_center,last_step):
+#     global shake_flag
+#     # Finding mode
+#     balloon_center,balloon_size = cal_ave_balloon()
+#     foam_center = cal_ave_foam()
+#     print('%s is step'%(step - last_step))
+#     # if ((step - last_step)>0):
+#     #     speed = ((center[0][0]-last_center[0][0])/(step - last_step))*10e3
+#     # else:
+#     #     speed = 0
+#     # print(set_front("speed between two frame is %s" % speed ,1))
+#     if ((balloon_center[0] == (0,0)) and (shake_flag != 1)):
+#         speed = set_speed(0, 0, diappear_flag*300)
+#         print("finding in %s\n"%diappear_flag)
+#         # if target was found , but lost check found_flag
+#     elif(shake_flag == 1):
+#         shake(1)
+#         shake_flag = 0
+#     else:
+#         if (balloon_center[0][0]<0.35 or balloon_center[0][0]>0.65):
+#             centering_speed = (balloon_center[0][0]-0.5)*300
+#             print("centering speed %s"%centering_speed)
+#             speed = set_speed(0, 0, suppress(centering_speed, 200))
+#             print("centering")
+#         elif(0.35<=balloon_center[0][0]<=0.65):
+#             # set_speed(0, 0, 0)
+#             print("incenter")
+#             if(global_dist>500):
+#                 centering_speed = (balloon_center[0][0] - 0.5) * 50
+#                 speed = set_speed(0, 200, suppress(centering_speed, 50))
+#                 # print("approaching %s"%global_dist)
+#                 print(set_front(("approaching %s" % global_dist),1))
+#                 # check
+#             else:
+#                 shake_flag = 1
+#         print(set_front("Found",1))
+#     last_step = step
+#     print(balloon_center)
+#     return balloon_center,last_step,speed
 
 
 def cal_ave_balloon():
@@ -311,6 +323,7 @@ def inqueue(box):
             cache_box.pop()
     # ave_box = cal_average(cache_box)
     # print("%s is in box"%cache_box)
+
 
 # necessary for USB camera
 def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=480, display_height=360, framerate=21, flip_method=0) :
@@ -432,6 +445,7 @@ def image_get(q,list_queue,serial_flag,):
                     else:
                         match_mode = 'Lost'
             list_queue.put(list)
+            list_queue.get(list) if list_queue.qsize() > 1 else time.sleep(0.01)
             cv2.putText(im0, match_mode, (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
             ############################
             # cv2.resize(im0,(480,360))#
