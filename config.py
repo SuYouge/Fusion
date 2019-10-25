@@ -19,7 +19,10 @@ serialPort = "COM14"  if platform.system() == 'Windows' else "/dev/ttyUSB0"# ser
 
 baudRate = 9600  # Baudrate
 test_mode = False
-
+gamma = 0.5
 reverse = True
+
+camera_mode = 'USB'
+# camera_mode = 'GS'
 
 

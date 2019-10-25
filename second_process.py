@@ -31,7 +31,7 @@ forward_flag = 1
 # mode_flag = 1
 round_flag =1
 w_cnt = 0
-lost_cnt = 0
+
 class SerialPort:
     message = ''
     def __init__(self, port, buand):
@@ -153,10 +153,10 @@ def debute():
     print("debute counter is %s"%d_cnt)
     foam_center = cal_ave_foam()
     speed = (0, 0, 0)
-    if (global_dist>250):
+    if ((global_dist>250) or (global_dist==0)):
         speed = set_speed(0, 500, 0)
         d_cnt += 1
-        if (d_cnt >= 100):
+        if (d_cnt >= 150):
             mode_flag = 2
     else:
         mode_flag = 2
@@ -166,42 +166,24 @@ def debute():
 def wander_test():
     global global_dist
     mode_flag = 2
-    global w_cnt
-    global lost_cnt
+    # global w_cnt
     # Finding mode
     balloon_center, balloon_size = cal_ave_balloon()
     print(set_front(("balloon size is  %s" % balloon_size), 2))
     foam_center = cal_ave_foam()
     speed = (0,0,0)
+    # w_cnt += 1
     # if (w_cnt%10!=0):
-    if (global_dist>200):
-        if (balloon_center[0] == (0, 0)):
-            lost_cnt+=1
-            if(lost_cnt<=60):
-                if(config.camera_mode=='USB'):
-                    if(w_cnt%5!=0):
-                        w_cnt += 1
-                        speed = set_speed(0, 0, diappear_flag * 250)
-                        print("finding in %s\n" % diappear_flag)
-                    else:
-                        speed = set_speed(0, 0, 0)
-                        print("waiting in %s\n" % diappear_flag)
-                else:
-                    speed = set_speed(0, 0, diappear_flag * 250)
-                    print("finding in %s\n" % diappear_flag)
-            else:
-                speed = set_speed(0, -200, 0)
-            # if target was found , but lost check found_flag
-        elif ((balloon_center[0] != (0, 0))and(global_dist>350)):
-            lost_cnt = 0
-            centering_speed = (balloon_center[0][0] - 0.5) * 200
-            speed = set_speed(0, 500, 0)
-            # speed = set_speed(0, 500, suppress(centering_speed, 80))
-        elif((balloon_center[0] != (0, 0))and(global_dist<350)):
-            lost_cnt = 0
-            mode_flag = 3
+    if (balloon_center[0] == (0, 0)):
+        speed = set_speed(0, 0, diappear_flag * 250)
+        print("finding in %s\n" % diappear_flag)
+        # if target was found , but lost check found_flag
+    elif ((balloon_center[0] != (0, 0))and(global_dist>350)):
+        centering_speed = (balloon_center[0][0] - 0.5) * 200
+        speed = set_speed(0, 500, suppress(centering_speed, 80))
+    elif((balloon_center[0] != (0, 0))and(global_dist<350)):
+        mode_flag = 2
     else:
-        speed = set_speed(0, -200, 0)
         print("Wandering")
     return speed,mode_flag
 
@@ -216,8 +198,8 @@ def shake():
     print("shake counter is %s" % s_cnt)
     foam_center = cal_ave_foam()
     speed = (0, 0, 0)
-    total = 20
-    if (200<= global_dist < 250):
+    total = 50
+    if (200<=global_dist < 250):
         s_cnt += 1
         if (s_cnt >= total/2):
             speed = set_speed(0, 100, 300)
@@ -227,8 +209,6 @@ def shake():
             mode_flag = 3
         else:
             mode_flag = 2
-    else:
-        mode_flag = 2
     return mode_flag
 # Finding mode
 # def mode_test(step,last_center,last_step):
@@ -358,11 +338,7 @@ def gstreamer_pipeline (capture_width=3280, capture_height=2464, display_width=4
 
 
 def image_put(q,):
-    if (config.camera_mode == 'USB'):
-        cap = cv2.VideoCapture(0)
-    else:
-        cap = cv2.VideoCapture(0) if platform.system() == 'Windows' else cv2.VideoCapture(
-            gstreamer_pipeline(flip_method=0), cv2.CAP_GSTREAMER)
+    cap = cv2.VideoCapture(0) if platform.system() == 'Windows' else cv2.VideoCapture(gstreamer_pipeline(flip_method=0),cv2.CAP_GSTREAMER)
     if cap.isOpened():
         print('Successfully open Cam')
     else:
@@ -375,7 +351,7 @@ def image_put(q,):
         print(Exception, ": in image put ", e)
 
 
-def image_get(q,list_queue,serial_flag,):
+def image_get(q,):
     time.sleep(3)
     device, model, classes, colors = init_detect()
     cv2.namedWindow('Cam0', flags=cv2.WINDOW_FREERATIO)
@@ -388,6 +364,20 @@ def image_get(q,list_queue,serial_flag,):
     match_mode = 'none'
     target_color = 'blue'
     try:
+        mSerial = SerialPort(config.serialPort, config.baudRate)
+        t1 = threading.Thread(target=mSerial.read_data)
+        t2 = threading.Thread(target=mSerial.set_speed)
+    except Exception as e:
+        print(Exception, ": in Serial threading ", e)
+    t1.start()
+    t2.start()
+    mode_flag = 1
+    center = ((0, 0), 0)
+    last_step = 0
+    debute_flag = 0
+    d_cnt = 0
+    # pcnt = 0
+    try:
         while True:
             im0 = q.get()
             im0 = gamma_trans(im0, config.gamma)
@@ -396,13 +386,22 @@ def image_get(q,list_queue,serial_flag,):
             det_cnt += 1
             list = [[0, [0, 0], [0, 0], 0], \
                     [0, [0, 0], [0, 0], 0]]
+            ####
+            mSerial.get_dist()
+            # if (debute_flag!=1):
+            print(mode_flag)
+            if (mode_flag == 1):
+                mode_flag = debute()
+            if (mode_flag == 2):
+                speed, mode_flag = wander_test()
+            if (mode_flag == 3):
+                mode_flag = shake()
+            ####
             if (len(temp_cache) == 0 or det_cnt % 10 == 0 or match_mode == 'Lost'):
                 print("in recognition %s"%det_cnt)
                 img = torch.from_numpy(img).unsqueeze(0).to(device)
                 pred, _ = model(img)
                 det = non_max_suppression(pred.float(), config.conf_thres, config.nms_thres)[0]
-                if (config.test_mode is not True):
-                    serial_flag.put(1)
                 s = '%gx%g ' % img.shape[2:]
                 if det is not None and len(det):
                     # Rescale boxes from img_size to im0 size
@@ -468,11 +467,10 @@ def image_get(q,list_queue,serial_flag,):
                         in_part_1 = 1
                     else:
                         match_mode = 'Lost'
-            list_queue.put(list)
-            list_queue.get(list) if list_queue.qsize() > 1 else time.sleep(0.01)
+            inqueue(list)
             cv2.putText(im0, match_mode, (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
             ############################
-            # im0 = cv2.resize(im0,(480,360))
+            im0 = cv2.resize(im0,(480,360))
             ############################
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
@@ -499,13 +497,13 @@ def run_single_camera():
     # device, model, classes, colors = init_detect()
     mp.set_start_method(method='spawn')  # init
     img_queue = mp.Queue()
-    list_queue = mp.Queue()
-    serial_flag = mp.Queue()
+    # list_queue = mp.Queue()
+    # serial_flag = mp.Queue()
 
     processes = [
                  mp.Process(target=image_put, args=(img_queue,)),
-                 mp.Process(target=image_get, args=(img_queue, list_queue,serial_flag,)),
-                 mp.Process(target=serial_threading,args=(serial_flag,list_queue,)),
+                 mp.Process(target=image_get, args=(img_queue,)),
+                 # mp.Process(target=serial_threading,args=(serial_flag,list_queue,)),
                  ]
 
     [process.start() for process in processes]
