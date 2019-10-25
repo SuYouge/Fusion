@@ -28,9 +28,9 @@ shake_cnt = 0
 diappear_flag = -1
 forward_flag = 1
 
-mode_flag = 1
+# mode_flag = 1
 round_flag =1
-
+w_cnt = 0
 
 class SerialPort:
     message = ''
@@ -98,21 +98,20 @@ def serial_threading(serial_flag,list_queue,):
         try:
             t1.start()
             t2.start()
+            mode_flag = 1
             center = ((0,0),0)
             last_step = 0
-            debut_flag = 0
+            debute_flag = 0
             d_cnt = 0
             # pcnt = 0
             while True:
                 step = time.clock()
                 mSerial.get_dist()
-                # if (mode_flag == 2):
-                #     wander_mode()
-                # if(mode_flag == 1):
-                #     center,last_step,speed = mode_test(step,center,last_step)
-                if (debute_flag!=1):
-                    debute()
-                if (debute_flag==1):
+                # if (debute_flag!=1):
+                print(mode_flag)
+                if (mode_flag==1):
+                    mode_flag =debute()
+                if (mode_flag==2):
                     _ = wander_test()
                 if (list_queue.qsize()>0):
                     list = list_queue.get()
@@ -128,29 +127,6 @@ def serial_threading(serial_flag,list_queue,):
         time.sleep(5)
 
 
-# def wander_mode():
-#     balloon_center = cal_ave_balloon()
-#     foam_center = cal_ave_foam()
-#     if (balloon_center[0] == (0, 0)):
-#         if(global_dist>500) and (forward_flag == 1):
-#             set_speed(0, 200, 0)
-#         elif (round_flag == 1):
-#             set_speed(0, 200, 0)
-#             round_cnt+=1
-#     else:
-#         mode_flag = 1
-#     pass
-
-#
-# def counter(target,cnt):
-#     if (cnt<target):
-#         cnt = cnt + 1
-#         return cnt,False
-#     else:
-#         return 0,True
-#
-
-
 def set_speed(x=0,y=0,r=0):
     global global_speedx
     global global_speedy
@@ -164,82 +140,61 @@ def set_speed(x=0,y=0,r=0):
     speed = (x,y,r)
     return speed
 
-
-def shake(times):
-    global shake_cnt
-    global shake_flag
-    if (times != 0):
-        if (shake_cnt <= times):
-            set_speed(0, 0, 500)
-            shake_cnt += 1
-        elif(times<=shake_cnt <= 2*times):
-            set_speed(0, 0, -500)
-            shake_cnt += 1
-        else:
-            shake_cnt = 0
-            shake_flag = 0
-        print(set_front("shaking",3))
-    pass
+#
+# def shake(times):
+#     global shake_cnt
+#     global shake_flag
+#     if (times != 0):
+#         if (shake_cnt <= times):
+#             set_speed(0, 0, 500)
+#             shake_cnt += 1
+#         elif(times<=shake_cnt <= 2*times):
+#             set_speed(0, 0, -500)
+#             shake_cnt += 1
+#         else:
+#             shake_cnt = 0
+#             shake_flag = 0
+#         print(set_front("shaking",3))
+#     pass
 
 
 def debute():
     global global_dist
     global d_cnt
-    global debute_flag
+    # global mode_flag
+    mode_flag = 1
     balloon_center, balloon_size = cal_ave_balloon()
-    print(set_front(("balloon size is  %s" % balloon_size), 2))
+    print(set_front(("debute balloon size is  %s" % balloon_size), 3))
+    print("debute counter is %s"%d_cnt)
     foam_center = cal_ave_foam()
     speed = (0, 0, 0)
-    if (global_dist>300):
-        speed = set_speed(0, 200, 0)
+    if (global_dist>250):
+        speed = set_speed(0, 500, 0)
         d_cnt += 1
-        if (d_cnt >= 10):
-            debute_flag = 1
-    else:
-        debute_flag = 1
-
-
+        if (d_cnt >= 150):
+            mode_flag = 2
+    return mode_flag
 
 
 def wander_test():
+    global global_dist
+    # global w_cnt
     # Finding mode
     balloon_center, balloon_size = cal_ave_balloon()
     print(set_front(("balloon size is  %s" % balloon_size), 2))
     foam_center = cal_ave_foam()
     speed = (0,0,0)
+    # w_cnt += 1
+    # if (w_cnt%10!=0):
     if (balloon_center[0] == (0, 0)):
-        speed = set_speed(0, 0, diappear_flag * 200)
+        speed = set_speed(0, 0, diappear_flag * 250)
         print("finding in %s\n" % diappear_flag)
         # if target was found , but lost check found_flag
+    elif ((balloon_center[0] != (0, 0))and(global_dist>250)):
+        centering_speed = (balloon_center[0][0] - 0.5) * 200
+        speed = set_speed(0, 500, suppress(centering_speed, 80))
     else:
-        if (balloon_center[0][0] < 0.35 or balloon_center[0][0] > 0.65) and (balloon_size>0.3):
-            centering_speed = (balloon_center[0][0] - 0.5) * 400
-            print("low speed centering speed %s" % centering_speed)
-            speed = set_speed(0, 0, suppress(centering_speed, 350))
-            print("centering")
-        elif (balloon_center[0][0] < 0.35 or balloon_center[0][0] > 0.65) and (balloon_size<=0.3):
-            centering_speed = (balloon_center[0][0] - 0.5) * 200
-            print("high speed centering speed %s" % centering_speed)
-            speed = set_speed(0, 0, suppress(centering_speed, 150))
-            print("centering")
-        else:
-            speed = set_speed(0, 0, 0)
-            print("done")
-        # elif (0.35 <= balloon_center[0][0] <= 0.65):
-        #     # set_speed(0, 0, 0)
-        #     print("incenter")
-        #     if ((global_dist > 400) and (balloon_size<0.3)):
-        #         centering_speed = (balloon_center[0][0] - 0.5) * 200
-        #         speed = set_speed(0, 500, suppress(centering_speed, 200))
-        #         # print("approaching %s"%global_dist)
-        #         print(set_front(("approaching %s" % global_dist), 1))
-        #         # check
-        #     elif ((global_dist > 400) and (balloon_size>=0.3)):
-        #         centering_speed = (balloon_center[0][0] - 0.5) * 200
-        #         speed = set_speed(0, 300, suppress(centering_speed, 200))
-        #     else:
-        #         print(set_front("Found", 1))
-        #         speed = set_speed(0, 0, 0)
+        print("Wandering")
     return speed
 
 
@@ -398,7 +353,7 @@ def image_get(q,list_queue,serial_flag,):
     try:
         while True:
             im0 = q.get()
-            im0 = gamma_trans(im0, 0.4)
+            im0 = gamma_trans(im0, 0.5)
             img = set_size(im0, half)
             # img = gamma_trans(img, 0.5)
             det_cnt += 1

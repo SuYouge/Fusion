@@ -20,9 +20,6 @@ def bounding(opening):
     cv2.rectangle(opening, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
 def gamma_trans(img, gamma):
-    # hist_b = cv2.calcHist([frame], [0], None, [256], [0, 256])
-    # hist_g = cv2.calcHist([frame], [1], None, [256], [0, 256])
-    # hist_r = cv2.calcHist([frame], [2], None, [256], [0, 256])
     # 具体做法先归一化到1，然后gamma作为指数值求出新的像素值再还原
     gamma_table = [np.power(x / 255.0, gamma) * 255.0 for x in range(256)]
     gamma_table = np.round(np.array(gamma_table)).astype(np.uint8)
