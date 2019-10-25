@@ -11,6 +11,29 @@ def get_recbox(x, img,label=None):
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
     list = [list_1, list_2]
     name_list = ['balloon', 'ball']
+    # h = c2[1] - c1[1]
+    # w = c2[0] - c1[0]
+    # cb1,cb2 = (0,0),(0,0)
+    # bh = int(0.2*h)
+    # bw = int(0.2*w)
+    # if ((c1[1]-bh)<0):
+    #     cb11 = 0
+    # else:
+    #     cb11 = (c1[1]-bh)
+    # if ((c2[1]+bh)>img.shape[0]):
+    #     cb21 = img.shape[0]
+    # else:
+    #     cb21 = c2[1]+bh
+    #
+    # if ((c1[0]-bw)<0):
+    #     cb10 = 0
+    # else:
+    #     cb10 = (c1[0]-bw)
+    # if ((c2[0]+bw)>img.shape[1]):
+    #     cb20 = img.shape[1]
+    # else:
+    #     cb20 = c2[0]+bw
+    # box = img[cb11:cb21, cb10:cb20]
     box = img[c1[1]:c2[1], c1[0]:c2[0]]
     box_01 = img[c1[1]:int((c2[1]+c1[1])/2), c1[0]:c2[0]]
     box_02 = img[int((c2[1]+c1[1])/2):c2[1], c1[0]:c2[0]]
@@ -108,7 +131,7 @@ def safe_check(img,xyxy):
     hue_image = cv2.cvtColor(box, cv2.COLOR_BGR2HSV)
     th = cv2.inRange(hue_image, low_range, high_range)
     dilated = cv2.dilate(th, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=3)
-    cv2.imshow('dilated', dilated)
+    # cv2.imshow('dilated', dilated)
     circles = cv2.HoughCircles(dilated, cv2.HOUGH_GRADIENT, 1, 15, param1=15, param2=7, minRadius=3,
                                maxRadius=120)
     if circles is not None:
@@ -120,27 +143,44 @@ def safe_check(img,xyxy):
         return False
 
 
-def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4):
-    match2, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_2, 0.75)
+def match_pattern_list(im0,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4,const_cache):
+    match2, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_2, 0.70)
     if (match2==1):
-        ret = 1
-        cache = temp_cache_2
-        return ret, cache,'down'
-    match1, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_1, 0.75)
-    if (match1==1):
-        ret = 1
-        cache = temp_cache_1
-        return ret, cache,'up'
-    match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.75)
-    if (match3==1):
-        ret = 1
-        cache = temp_cache_3
-        return ret, cache,'left'
-    match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.75)
-    if (match4==1):
-        ret = 1
-        cache = temp_cache_4
-        return ret, cache,'right'
+        match, _, _, _, _, _, _, _ = post_process.match_img(const_cache, temp_cache_2, 0.65)
+        if (match ==1):
+            ret = 1
+            cache = temp_cache_2
+            return ret, cache,'down'
+    # match1, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_1, 0.70)
+    # if (match1==1):
+    #     match, _, _, _, _, _, _, _ = post_process.match_img(const_cache, temp_cache_1, 0.65)
+    #     if (match ==1):
+    #         ret = 1
+    #         cache = temp_cache_1
+    #         return ret, cache,'up'
+    # match3, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_3, 0.70)
+    # if (match3==1):
+    #     match, _, _, _, _, _, _, _ = post_process.match_img(const_cache, temp_cache_3, 0.65)
+    #     if (match==1):
+    #         ret = 1
+    #         cache = temp_cache_3
+    #         return ret, cache,'left'
+    # match4, c1, c2, new_box, _, _, _, _ = post_process.match_img(im0, temp_cache_4, 0.70)
+    # if (match4==1):
+    #     match, _, _, _, _, _, _, _ = post_process.match_img(const_cache, temp_cache_4, 0.65)
+    #     if (match ==1):
+    #         ret = 1
+    #         cache = temp_cache_4
+    #         return ret, cache,'right'
     ret = 0
-    cache = []
+    cache = 0
     return ret, cache,'none'
+
+
+def gamma_trans(img, gamma):
+    # 具体做法先归一化到1，然后gamma作为指数值求出新的像素值再还原
+    gamma_table = [np.power(x / 255.0, gamma) * 255.0 for x in range(256)]
+    gamma_table = np.round(np.array(gamma_table)).astype(np.uint8)
+    # 实现映射用的是Opencv的查表函数
+    img0 = cv2.LUT(img, gamma_table)
+    return img0
