@@ -5,6 +5,7 @@ import platform
 import struct
 import config
 import threading
+import random
 import ctypes
 import re
 import cv2
@@ -22,7 +23,7 @@ s_cnt = 0
 d_cnt = 0
 debute_flag = 0
 cache_box = []
-cache_size = 3
+cache_size = 1
 shake_flag = 0
 shake_cnt = 0
 diappear_flag = -1
@@ -32,6 +33,11 @@ forward_flag = 1
 round_flag =1
 w_cnt = 0
 lost_cnt = 0
+q_cnt = 0
+glance_flag = 0
+wind_cnt = 0
+b_cnt = 0
+
 class SerialPort:
     message = ''
     def __init__(self, port, buand):
@@ -63,6 +69,9 @@ class SerialPort:
         # while (self.n%100 == 0):
         while True:
             # self.n+=1
+            time.sleep(0.1)
+            # self.flushOutput()
+            # time.sleep(0.1)
             self.package = struct.pack('<3s3hs', b'\xff\xfe\x01', global_speedx, global_speedy,global_speedr, b'\x00')
             n = self.port.write(self.package)
             # print("speedx = %s, speedy = %s, speedr = %s \n"%(global_speedx,global_speedy,global_speedr))
@@ -115,6 +124,12 @@ def serial_threading(serial_flag,list_queue,):
                     speed, mode_flag = wander_test()
                 if (mode_flag==3):
                     mode_flag = shake()
+                if (mode_flag==4):
+                    mode_flag = avoid()
+                if (mode_flag==5):
+                    mode_flag = quick_return()
+                if (mode_flag==6):
+                    mode_flag = wind()
                 if (list_queue.qsize()>0):
                     list = list_queue.get()
                     # print(list)
@@ -143,6 +158,50 @@ def set_speed(x=0,y=0,r=0):
     return speed
 
 
+def wind():
+    global global_dist
+    global wind_cnt
+    wind_cnt += 1
+    balloon_center, balloon_size = cal_ave_balloon()
+    if(global_dist>=250):
+        speed = set_speed(0, 500, 0) if wind_cnt%10!=0 else set_speed(0, 0, 200)
+        mode_flag = 6
+    elif((balloon_center[0] != (0, 0))):
+        mode_flag = 2
+    else:
+        mode_flag = 4
+    return mode_flag
+
+
+def quick_return():
+    global global_dist
+    global q_cnt
+    mode_flag = 5
+    if ((global_dist>250) or (global_dist==0)):
+        q_cnt += 1
+        if (q_cnt <= 80):
+            speed = set_speed(0, 500, 0)
+            mode_flag = 5
+        elif((q_cnt>80)and(q_cnt<=160)):
+            speed = set_speed(0,0, -350)
+            mode_flag = 5
+        else:
+            mode_flag = 2
+    else:
+        mode_flag = 4
+    return mode_flag
+
+def avoid():
+    global global_dist
+    mode_flag = 4
+    if (global_dist<300):
+        speed = set_speed(0, -200, 0)
+        mode_flag = 4
+    else:
+        mode_flag = 2
+    return mode_flag
+
+
 def debute():
     global global_dist
     global d_cnt
@@ -153,10 +212,10 @@ def debute():
     print("debute counter is %s"%d_cnt)
     foam_center = cal_ave_foam()
     speed = (0, 0, 0)
-    if (global_dist>250):
+    if ((global_dist>250) or (global_dist==0)):
         speed = set_speed(0, 500, 0)
         d_cnt += 1
-        if (d_cnt >= 100):
+        if (d_cnt >= 180):
             mode_flag = 2
     else:
         mode_flag = 2
@@ -168,40 +227,53 @@ def wander_test():
     mode_flag = 2
     global w_cnt
     global lost_cnt
+    global glance_flag
     # Finding mode
+    global b_cnt
     balloon_center, balloon_size = cal_ave_balloon()
     print(set_front(("balloon size is  %s" % balloon_size), 2))
     foam_center = cal_ave_foam()
     speed = (0,0,0)
     # if (w_cnt%10!=0):
-    if (global_dist>200):
+    if (global_dist>200 and global_dist <1400):
         if (balloon_center[0] == (0, 0)):
             lost_cnt+=1
             if(lost_cnt<=60):
-                if(config.camera_mode=='USB'):
-                    if(w_cnt%5!=0):
-                        w_cnt += 1
-                        speed = set_speed(0, 0, diappear_flag * 250)
-                        print("finding in %s\n" % diappear_flag)
-                    else:
-                        speed = set_speed(0, 0, 0)
-                        print("waiting in %s\n" % diappear_flag)
-                else:
-                    speed = set_speed(0, 0, diappear_flag * 250)
+                    speed = set_speed(0, 0, diappear_flag * config.roundspeed)
                     print("finding in %s\n" % diappear_flag)
             else:
-                speed = set_speed(0, -200, 0)
+                if(global_dist<250):
+                    speed = set_speed(0, -200, 0)
+                elif(global_dist>400):
+                    lost_cnt = 20
+                    speed = set_speed(0, 500, 0)
+                else:
+                    speed = set_speed(0, 0, diappear_flag * 250)
             # if target was found , but lost check found_flag
-        elif ((balloon_center[0] != (0, 0))and(global_dist>350)):
+        elif ((balloon_center[0] != (0, 0))and(global_dist>350)and(global_dist<1400)):
+            glance_flag +=1
             lost_cnt = 0
             centering_speed = (balloon_center[0][0] - 0.5) * 200
-            speed = set_speed(0, 500, 0)
+            speed = set_speed(0, 700, 0)
             # speed = set_speed(0, 500, suppress(centering_speed, 80))
+            if (glance_flag%5==0):
+                mode_flag = 5
         elif((balloon_center[0] != (0, 0))and(global_dist<350)):
+            glance_flag += 1
             lost_cnt = 0
             mode_flag = 3
+            if (glance_flag%5==0):
+                mode_flag = 5
     else:
-        speed = set_speed(0, -200, 0)
+        if(global_dist>1400):
+            b_cnt += 1
+            if (b_cnt<30):
+                speed = set_speed(0, -300, 0)
+                mode_flag = 2
+            else:
+                mode_flag = 6
+        else:
+            mode_flag = 4
         print("Wandering")
     return speed,mode_flag
 
@@ -220,56 +292,16 @@ def shake():
     if (200<= global_dist < 250):
         s_cnt += 1
         if (s_cnt >= total/2):
-            speed = set_speed(0, 100, 300)
+            speed = set_speed(0, 200, 300)
             mode_flag = 3
         elif(total/2<s_cnt<=total):
-            speed = set_speed(0, 100, -300)
+            speed = set_speed(0, 200, -300)
             mode_flag = 3
         else:
             mode_flag = 2
     else:
         mode_flag = 2
     return mode_flag
-# Finding mode
-# def mode_test(step,last_center,last_step):
-#     global shake_flag
-#     # Finding mode
-#     balloon_center,balloon_size = cal_ave_balloon()
-#     foam_center = cal_ave_foam()
-#     print('%s is step'%(step - last_step))
-#     # if ((step - last_step)>0):
-#     #     speed = ((center[0][0]-last_center[0][0])/(step - last_step))*10e3
-#     # else:
-#     #     speed = 0
-#     # print(set_front("speed between two frame is %s" % speed ,1))
-#     if ((balloon_center[0] == (0,0)) and (shake_flag != 1)):
-#         speed = set_speed(0, 0, diappear_flag*300)
-#         print("finding in %s\n"%diappear_flag)
-#         # if target was found , but lost check found_flag
-#     elif(shake_flag == 1):
-#         shake(1)
-#         shake_flag = 0
-#     else:
-#         if (balloon_center[0][0]<0.35 or balloon_center[0][0]>0.65):
-#             centering_speed = (balloon_center[0][0]-0.5)*300
-#             print("centering speed %s"%centering_speed)
-#             speed = set_speed(0, 0, suppress(centering_speed, 200))
-#             print("centering")
-#         elif(0.35<=balloon_center[0][0]<=0.65):
-#             # set_speed(0, 0, 0)
-#             print("incenter")
-#             if(global_dist>500):
-#                 centering_speed = (balloon_center[0][0] - 0.5) * 50
-#                 speed = set_speed(0, 200, suppress(centering_speed, 50))
-#                 # print("approaching %s"%global_dist)
-#                 print(set_front(("approaching %s" % global_dist),1))
-#                 # check
-#             else:
-#                 shake_flag = 1
-#         print(set_front("Found",1))
-#     last_step = step
-#     print(balloon_center)
-#     return balloon_center,last_step,speed
 
 
 def cal_ave_balloon():
@@ -383,6 +415,7 @@ def image_get(q,list_queue,serial_flag,):
     temp_cache = []
     temp_cache_2 = []
     const_cache = []
+    const_cache_2 = []
     det_cnt = 0
     in_part_1 = 0
     match_mode = 'none'
@@ -396,7 +429,7 @@ def image_get(q,list_queue,serial_flag,):
             det_cnt += 1
             list = [[0, [0, 0], [0, 0], 0], \
                     [0, [0, 0], [0, 0], 0]]
-            if (len(temp_cache) == 0 or det_cnt % 10 == 0 or match_mode == 'Lost'):
+            if (len(temp_cache) == 0 or det_cnt % config.det_inter == 0 or match_mode == 'Lost'):
                 print("in recognition %s"%det_cnt)
                 img = torch.from_numpy(img).unsqueeze(0).to(device)
                 pred, _ = model(img)
@@ -420,7 +453,7 @@ def image_get(q,list_queue,serial_flag,):
                         # cache.put(list) # if get immediately no more list in cache
                         if ((classes[int(cls)] == 'balloon')):
                             if(safe_check(im0, xyxy)):
-                                list, box, temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = get_recbox(xyxy,
+                                list, box, box2,temp_cache_1, temp_cache_2, temp_cache_3, temp_cache_4 = get_recbox(xyxy,
                                                                                                                im0,
                                                                                                                label=label)
                                 cntm, color = post_process.get_color(box)
@@ -429,9 +462,10 @@ def image_get(q,list_queue,serial_flag,):
                                 if (cntm is not None):
                                     match = post_process.match_img(im0, box, 0.8)
                                     temp_cache = box
-                                    in_part = 0
-                                    cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 0, 0), 1)
                                     const_cache = box
+                                    const_cache_2 = box2
+                                    in_part = 0
+                                    cv2.rectangle(im0, (xyxy[0], xyxy[1]), (xyxy[2], xyxy[3]), (255, 255, 255), 1)
                                     match_mode = 'ALL'
                         # elif (classes[int(cls)] == 'ball'):
                         #     list, box, _, _, _, _ = get_recbox(xyxy, im0, label=label)
@@ -456,7 +490,7 @@ def image_get(q,list_queue,serial_flag,):
                     list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \
                             [0, [0, 0], [0, 0], 0]]
                     # list_queue.put(list)
-                    cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (0, 0, 255), 1)
+                    cv2.rectangle(im0, (c1[0], c1[1]), (c2[0], c2[1]), (255, 255, 255), 1)
                     temp_cache = new_box
                     if (in_part_1 != 1):
                         match_mode = 'ALL'
@@ -466,13 +500,28 @@ def image_get(q,list_queue,serial_flag,):
                     if (ret == 1):
                         temp_cache = cache
                         in_part_1 = 1
+                    elif (config.enhance==True and (const_cache_2 != [])):
+                        match_2, c12, c22, _, _, _, _, _ = post_process.match_img(im0, const_cache_2, 0.85)
+                        # new_box = const_cache_2
+                        if (match_2 == 1 and (check_color(const_cache_2, 'red')or check_color(const_cache_2, 'blue'))):
+                            mark_2 = safe_check(im0, (c12[0], c12[1], c22[0], c22[1]),60)
+                            if (mark_2 == 1):
+                                c1n, c2n = ((floatn(c12[0] / im0.shape[1]), floatn(c12[1] / im0.shape[0])),
+                                            (floatn(c22[0] / im0.shape[1]), floatn(c22[1] / im0.shape[0])))
+                                list = [[1, [c1n[0], c1n[1]], [c2n[0], c2n[1]], 0.8], \
+                                        [0, [0, 0], [0, 0], 0]]
+                                # list_queue.put(list)
+                                cv2.rectangle(im0, (c12[0], c12[1]), (c22[0], c22[1]), (255, 255, 255), 1)
+                        else:
+                            print("enhance failed")
                     else:
                         match_mode = 'Lost'
             list_queue.put(list)
             list_queue.get(list) if list_queue.qsize() > 1 else time.sleep(0.01)
-            cv2.putText(im0, match_mode, (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
+            # cv2.putText(im0, match_mode, (0, 20), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 0), 2)
             ############################
-            # im0 = cv2.resize(im0,(480,360))
+            if (config.camera_mode == 'USB'):
+                im0 = cv2.resize(im0,(480,360))
             ############################
             cv2.imshow('Cam0', im0)
             cv2.waitKey(1)
@@ -507,7 +556,6 @@ def run_single_camera():
                  mp.Process(target=image_get, args=(img_queue, list_queue,serial_flag,)),
                  mp.Process(target=serial_threading,args=(serial_flag,list_queue,)),
                  ]
-
     [process.start() for process in processes]
     [process.join() for process in processes]
 

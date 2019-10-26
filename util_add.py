@@ -35,6 +35,9 @@ def get_recbox(x, img,label=None):
     #     cb20 = c2[0]+bw
     # box = img[cb11:cb21, cb10:cb20]
     box = img[c1[1]:c2[1], c1[0]:c2[0]]
+    a = int(c1[1]-0.7*(c2[1]+c1[1])) if int(c2[1]-0.5*(c2[1]+c1[1]))>0 else 0
+    b = int(c2[1]+0.7*(c2[1]+c1[1])) if int(c2[1]+0.5*(c2[1]+c1[1]))<img.shape[0] else img.shape[0]
+    box22 = img[a:b, c1[0]:c2[0]]
     box_01 = img[c1[1]:int((c2[1]+c1[1])/2), c1[0]:c2[0]]
     box_02 = img[int((c2[1]+c1[1])/2):c2[1], c1[0]:c2[0]]
     box_03 = img[c1[1]:c2[1], c1[0]:int((c2[0]+c1[0])/2)]
@@ -50,7 +53,7 @@ def get_recbox(x, img,label=None):
         list[name_list.index(name)][2] = c2n
         list[name_list.index(name)][3] = float(posbility)
         # print("label is %s"%label)
-    return list, box,box_01,box_02,box_03,box_04
+    return list, box,box22,box_01,box_02,box_03,box_04
 
 
 def set_size(im0,half):
@@ -124,7 +127,7 @@ def update_part(new_box):
     new_box_4 = new_box[:,int(new_box.shape[1]/2) :new_box.shape[1]]
     return new_box_1,new_box_2,new_box_3,new_box_4
 
-def safe_check(img,xyxy):
+def safe_check(img,xyxy,ballsize=120):
     box = img[int((xyxy[1]+xyxy[3])/2):int(xyxy[3]+(xyxy[1]+xyxy[3])/2), int(xyxy[0]):int(xyxy[2])]
     low_range = np.array([156, 43, 46])
     high_range = np.array([180, 255, 255])
@@ -133,11 +136,11 @@ def safe_check(img,xyxy):
     dilated = cv2.dilate(th, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)), iterations=3)
     # cv2.imshow('dilated', dilated)
     circles = cv2.HoughCircles(dilated, cv2.HOUGH_GRADIENT, 1, 15, param1=15, param2=7, minRadius=3,
-                               maxRadius=120)
+                               maxRadius=ballsize)
     if circles is not None:
-        x, y, radius = circles[0][0]
-        center = (x, y)
-        cv2.circle(box, center, radius, (0, 255, 0), 2)
+        # x, y, radius = circles[0][0]
+        # center = (x, y)
+        # cv2.circle(box, center, radius, (0, 255, 0), 2)
         return True
     else:
         return False
