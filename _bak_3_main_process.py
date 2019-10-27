@@ -37,7 +37,6 @@ q_cnt = 0
 glance_flag = 0
 wind_cnt = 0
 b_cnt = 0
-back_total = 0
 
 class SerialPort:
     message = ''
@@ -70,7 +69,7 @@ class SerialPort:
         # while (self.n%100 == 0):
         while True:
             # self.n+=1
-            time.sleep(0.25)
+            time.sleep(0.1)
             # self.flushOutput()
             # time.sleep(0.1)
             self.package = struct.pack('<3s3hs', b'\xff\xfe\x01', global_speedx, global_speedy,global_speedr, b'\x00')
@@ -164,7 +163,7 @@ def wind():
     global wind_cnt
     wind_cnt += 1
     balloon_center, balloon_size = cal_ave_balloon()
-    if(global_dist>=250 and (balloon_center[0] == (0, 0))):
+    if(global_dist>=250):
         speed = set_speed(0, 500, 0) if wind_cnt%10!=0 else set_speed(0, 0, 200)
         mode_flag = 6
     elif((balloon_center[0] != (0, 0))):
@@ -194,14 +193,9 @@ def quick_return():
 
 def avoid():
     global global_dist
-    global back_total
     mode_flag = 4
     if (global_dist<300):
-        back_total +=1
-        if (back_total%3!=0):
-            speed = set_speed(0, -350, 0)
-        else:
-            speed = set_speed(0, 0, 0)
+        speed = set_speed(0, -200, 0)
         mode_flag = 4
     else:
         mode_flag = 2
@@ -236,7 +230,6 @@ def wander_test():
     global glance_flag
     # Finding mode
     global b_cnt
-    global back_total
     balloon_center, balloon_size = cal_ave_balloon()
     print(set_front(("balloon size is  %s" % balloon_size), 2))
     foam_center = cal_ave_foam()
@@ -250,11 +243,7 @@ def wander_test():
                     print("finding in %s\n" % diappear_flag)
             else:
                 if(global_dist<250):
-                    back_total +=1
-                    if (back_total%3!=0):
-                        speed = set_speed(0, -200, 0)
-                    else:
-                        speed = set_speed(0,0,0)
+                    speed = set_speed(0, -200, 0)
                 elif(global_dist>400):
                     lost_cnt = 20
                     speed = set_speed(0, 500, 0)
@@ -279,11 +268,7 @@ def wander_test():
         if(global_dist>1400):
             b_cnt += 1
             if (b_cnt<30):
-                back_total+=1
-                if (back_total%3!=0):
-                    speed = set_speed(0, -400, 0)
-                else:
-                    speed = set_speed(0,0,0)
+                speed = set_speed(0, -300, 0)
                 mode_flag = 2
             else:
                 mode_flag = 6
